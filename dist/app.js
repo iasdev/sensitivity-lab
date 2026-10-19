@@ -4,7 +4,7 @@ import { traceShot, shotPercentages } from './targets.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, yaw:0, pitch:0 };
 const canvas = $('scene');
 let renderer;
@@ -12,7 +12,7 @@ try { renderer = createRenderer(canvas); } catch(error) { console.error('WebGL:'
 if (!renderer) { $('webgl-error').hidden=false; $('capture').disabled=true; }
 let aspect=16/9, dirty=true, lastSize='', lastTime=0;
 const shots={hits:0,misses:0,headshots:0};
-let lastRenderedPose=null,feedbackTimer;
+let lastRenderedPose=null,feedbackTimer,animationTime=0,previousFrameTime=null;
 const setText = (id, text) => { $(id).textContent=text; };
 function updateShootingStats(){
   const {accuracy,headshotRate}=shotPercentages(shots);
@@ -63,7 +63,7 @@ function update() {
   $('hfov').min=30;$('hfov').max=160;
   $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
-  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity})){
+  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed})){
     const field=$(id+'-value');
     field.min=$(id).min;field.max=$(id).max;
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
@@ -96,14 +96,14 @@ function update() {
   setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
   dirty=true;
 }
-for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
+for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
 $('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),referenceAspect);update();});
-for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]){
+for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed']]){
   const field=$(id+'-value');
   const apply=(commit)=>{
     const value=field.valueAsNumber;
     if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,referenceAspect):state[key];return;}
-    if(id==='sensitivity'&&!Number.isInteger(value)){field.value=state.sensitivity;return;}
+    if(['sensitivity','target-count'].includes(id)&&!Number.isInteger(value)){field.value=state[key];return;}
     const min=Number(field.min),max=Number(field.max);
     if(!commit&&(value<min||value>max))return;
     const bounded=Math.max(min,Math.min(max,value));
@@ -128,9 +128,9 @@ $('apply-resolution').addEventListener('click',()=>{
   state.width=Number($('width').value);state.height=Number($('height').value);state.resolution='custom';layout();
 });
 $('reset-all').addEventListener('click',()=>{
-  Object.assign(state,initial,{yaw:0,pitch:0});
+  Object.assign(state,initial,{yaw:0,pitch:0});animationTime=0;
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']])$(id).checked=state[key];
-  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height']])$(id).value=state[key];
+  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed']])$(id).value=state[key];
   $('custom-resolution').hidden=true;layout();
 });
 $('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Plegar controles':'Expandir controles');$('collapse').textContent=open?'−':'+';});
@@ -192,8 +192,11 @@ $('resolution').value=state.resolution;
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
 layout();
 function frame(now){
-  if(renderer&&(dirty||state.motion)&&now-lastTime>=30){
-    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,time:now/1000,motion:state.motion};
+  const elapsed=previousFrameTime===null?0:Math.min((now-previousFrameTime)/1000,.1);previousFrameTime=now;
+  if(state.motion)animationTime+=elapsed*state.targetSpeed;
+  if(renderer&&(dirty||(state.motion&&state.targetSpeed>0))&&now-lastTime>=30){
+    // Keep the path phase when pausing or changing speed, without teleporting targets.
+    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,time:animationTime,motion:true,targetCount:state.targetCount};
     renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,...lastRenderedPose});dirty=false;lastTime=now;
   }
   requestAnimationFrame(frame);

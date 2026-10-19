@@ -30,6 +30,27 @@ test('moving hit geometry follows the displayed target time',()=>{
   const result=traceShot({...pose,time,motion:true});
   assert.equal(result.target,0);assert.equal(result.headshot,true);
 });
+test('count changes which targets can be hit',()=>{
+  assert.equal(traceShot({yaw:0,pitch:0,targetCount:1}).hit,false);
+  assert.equal(traceShot({yaw:0,pitch:0,targetCount:2}).target,1);
+});
+test('all 24 paths remain separated and inside the shooting range',()=>{
+  // Whole-path bounds prove separation even when neighboring paths are at opposite extremes.
+  assert.ok(TARGETS.spacing-2*TARGETS.motionAmplitude>2*TARGETS.board[0]);
+  assert.ok(TARGETS.depthSpacing-2*TARGETS.depthAmplitude>TARGETS.headOffset[2]+TARGETS.headRadius+TARGETS.board[2]);
+  for(let time=0;time<=40;time+=.2){
+    const centers=Array.from({length:TARGETS.maxCount},(_,i)=>targetCenter(i,time,true));
+    for(let i=0;i<centers.length;i++){
+      assert.ok(centers[i][2]-TARGETS.board[2]>-54.7,'target remains in front of back wall');
+      assert.ok(Math.abs(centers[i][0])+TARGETS.board[0]<10,'target stays inside side rails');
+      for(let j=i+1;j<centers.length;j++){
+        const separatedX=Math.abs(centers[i][0]-centers[j][0])>2*TARGETS.board[0];
+        const separatedZ=Math.abs(centers[i][2]-centers[j][2])>.51;
+        assert.ok(separatedX||separatedZ,`targets ${i} and ${j} overlap at ${time}`);
+      }
+    }
+  }
+});
 test('statistics use all shots for accuracy and hits for headshot percentage',()=>{
   assert.deepEqual(shotPercentages({hits:0,misses:0,headshots:0}),{accuracy:0,headshotRate:0});
   assert.deepEqual(shotPercentages({hits:0,misses:3,headshots:0}),{accuracy:0,headshotRate:0});

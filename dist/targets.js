@@ -1,7 +1,7 @@
 // Geometry used by both the WebGL scene and CPU hit detection.
 export const TARGETS = {
-  count:9, columns:3, spacing:5, firstZ:-10, depthSpacing:12,
-  height:1.65, motionSpeed:.65, motionPhase:1.7, motionAmplitude:1.7,
+  count:9, maxCount:24, columns:3, spacing:5, firstZ:-10, depthSpacing:6,
+  height:1.65, motionSpeed:.65, motionPhase:1.7, motionAmplitude:1.1, depthAmplitude:2,
   board:[.64,1.02,.10], headOffset:[0,.44,.23], headRadius:.18,
   bodyOffset:[0,-.08,.2], body:[.22,.34,.12],
 };
@@ -9,7 +9,7 @@ export const CAMERA = [0,1.65,4];
 export function targetCenter(index,time=0,motion=false){
   return [
     (index%TARGETS.columns)*TARGETS.spacing-5+(motion?Math.sin(time*TARGETS.motionSpeed+index*TARGETS.motionPhase)*TARGETS.motionAmplitude:0),
-    TARGETS.height,TARGETS.firstZ-Math.floor(index/TARGETS.columns)*TARGETS.depthSpacing,
+    TARGETS.height,TARGETS.firstZ-Math.floor(index/TARGETS.columns)*TARGETS.depthSpacing+(motion?Math.cos(time*TARGETS.motionSpeed+index*TARGETS.motionPhase)*TARGETS.depthAmplitude:0),
   ];
 }
 const add=(a,b)=>a.map((n,i)=>n+b[i]);
@@ -31,7 +31,7 @@ export function intersectSphere(origin,direction,center,radius){
   if(h<0)return Infinity;
   const t=-b-Math.sqrt(h);return t>0?t:Infinity;
 }
-export function traceShot({yaw,pitch,time=0,motion=false}){
+export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count}){
   const direction=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
   let distance=250,result={hit:false,headshot:false,target:null};
   const consider=(t,target=null,headshot=false)=>{
@@ -39,7 +39,8 @@ export function traceShot({yaw,pitch,time=0,motion=false}){
   };
   if(direction[1]<-.001)consider(-CAMERA[1]/direction[1]);
   consider(intersectBox(CAMERA,direction,[0,3,-55],[24,3,.3]));
-  for(let index=0;index<TARGETS.count;index++){
+  const count=Math.max(1,Math.min(TARGETS.maxCount,Math.round(targetCount)));
+  for(let index=0;index<count;index++){
     const center=targetCenter(index,time,motion);
     consider(intersectBox(CAMERA,direction,center,TARGETS.board),index);
     consider(intersectSphere(CAMERA,direction,add(center,TARGETS.headOffset),TARGETS.headRadius),index,true);

@@ -17,15 +17,22 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 - Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación.
 - Ajustes, métricas y controles del ratón integrados en la escena como overlays translúcidos; ajustes plegados inicialmente en móvil.
 - Mira con aumento óptico 1–8×; FOV relativo al jugador o referencia fija de 55° verticales.
-- USA activable, coeficiente 0–300%, sensibilidad base y objetivos móviles.
+- USA activable, coeficiente 0–300%, sensibilidad base y dianas móviles por defecto.
+- Cantidad de dianas de 1 a 24 y velocidad de 0× a 4×, con sliders e inputs. Las dianas avanzan, retroceden y se desplazan lateralmente en regiones separadas. Pausar o ajustar velocidad conserva la fase del movimiento.
 - Iniciar/Detener activa o desactiva el control del ratón; arrastrar con el botón izquierdo no mueve la cámara; Espacio para iniciar/detener la captura; mantener clic derecho sobre la escena para ADS y soltar para volver a la cadera, con o sin captura; Esc libera el ratón.
 - Rueda sobre la escena: arriba aumenta el zoom y abajo lo reduce en pasos de 0,25×, entre 1× y 8×; sincroniza el slider y funciona con el ratón capturado.
 
 ## Disparos
 
-Con el ratón capturado, cada clic izquierdo dispara un rayo desde la retícula. Se usa la cámara y el tiempo del último frame mostrado para coincidir con los blancos móviles. La geometría de tablero, cuerpo y cabeza se comparte entre shader y detector; suelo, postes y barandillas bloquean disparos. El tablero completo y la silueta cuentan como acierto; únicamente la esfera visible de la cabeza cuenta como headshot. Cada disparo cuenta una sola vez y la superficie más cercana decide el resultado.
+Con el ratón capturado, cada clic izquierdo dispara un rayo desde la retícula. Se usa la cámara y el tiempo del último frame mostrado para coincidir con los blancos móviles. La cantidad y el reloj de animación del último frame también se usan al detectar impactos. La geometría de tablero, cuerpo y cabeza se comparte entre shader y detector; suelo, postes y barandillas bloquean disparos. El tablero completo y la silueta cuentan como acierto; únicamente la esfera visible de la cabeza cuenta como headshot. Cada disparo cuenta una sola vez y la superficie más cercana decide el resultado.
 
 El overlay superior izquierdo muestra aciertos, fallos, precisión (aciertos/disparos) y headshots (headshots/aciertos). Pausar conserva los contadores; el botón ↺ del overlay los reinicia. Se muestra un marcador breve de acierto, fallo o headshot.
+
+## Movimiento de dianas
+
+Tres columnas separadas por 5 unidades y filas separadas por 6. Cada diana recorre una elipse con desplazamiento lateral máximo de 1,1 y profundidad máxima de 2. Incluso con fases opuestas, las regiones conservan más separación que la geometría de cada diana, de modo que no pueden colisionar. El máximo de 24 mantiene todas las filas delante del muro. Los solapamientos en perspectiva y las oclusiones entre filas siguen siendo posibles.
+
+El reloj avanza según la velocidad seleccionada, se congela al desactivar movimiento o poner 0×, y no se reinicia al cambiar la velocidad. Restablecer ajustes devuelve 9 dianas, movimiento activo y velocidad 1×.
 
 ## Modelo
 
