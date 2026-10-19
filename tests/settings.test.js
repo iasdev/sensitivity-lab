@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sanitizeSettings } from '../dist/settings.js';
-const defaults={vertical:70,zoom:2,coefficient:178,sensitivity:7,targetCount:9,targetSpeed:1,movementSpeed:4,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:false,resolution:'1920x1080'};
+const defaults={vertical:70,zoom:2,coefficient:178,sensitivity:7,targetCount:9,targetSpeed:1,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:false,resolution:'1920x1080'};
 test('only settings are restored, excluding statistics and runtime state',()=>{
   const data=sanitizeSettings({...defaults,sensitivity:55,movementSpeed:6,shots:{hits:100},position:[1,2,3],ads:true,yaw:2},defaults);
   assert.equal(data.sensitivity,55);assert.equal(data.movementSpeed,6);

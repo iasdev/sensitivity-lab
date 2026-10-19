@@ -32,6 +32,13 @@
           <div><span>PRECISIÓN</span><strong id="shot-accuracy">0,0%</strong></div>
           <div title="Headshots divididos entre los aciertos"><span>HEADSHOTS / ACIERTOS</span><strong id="shot-headshots">0,0%</strong></div>
         </div>
+        <div class="training-session" aria-label="Prueba cronometrada">
+          <div class="session-clock-row"><span id="session-status">PRUEBA PREPARADA</span><strong id="session-clock">1:00</strong></div>
+          <div class="session-score-row"><span>PUNTUACIÓN</span><strong id="session-score">—</strong></div>
+          <button id="session-start" class="primary">Iniciar prueba</button>
+          <button id="session-free" hidden>Volver a práctica libre</button>
+          <p class="session-formula">+100 acierto · +50 extra HS · −25 fallo</p>
+        </div>
         <div class="stats-mode"><span class="live-dot"></span><span id="view-state">DESDE LA CADERA</span></div>
       </section>
       <div class="scene-bottom"><span id="interaction-hint">Iniciar o Espacio · WASD para moverte · Clic derecho para apuntar</span><span>ESC para liberar el ratón</span></div>
@@ -68,6 +75,10 @@
         <section class="control-section"><div class="section-title"><span>05</span><h3>Movimiento del jugador</h3></div>
           <div class="range-label"><label for="movement-speed">Velocidad</label><span class="numeric-value"><input id="movement-speed-value" type="number" min="0" max="12" step="0.1" aria-label="Velocidad de movimiento: valor exacto"><span>m/s</span></span></div><input id="movement-speed" type="range" min="0" max="12" step="0.1" value="4">
           <p class="micro">W / S: avanzar y retroceder · A / D: desplazarte a los lados. Disponible al iniciar la captura.</p>
+        </section>
+        <section class="control-section"><div class="section-title"><span>06</span><h3>Prueba cronometrada</h3></div>
+          <div class="range-label"><label for="session-duration">Duración</label><span class="numeric-value"><input id="session-duration-value" type="number" min="0" max="300" step="1" inputmode="numeric" aria-label="Duración de la prueba en segundos"><span>s</span></span></div><input id="session-duration" type="range" min="0" max="300" step="1" value="60">
+          <p class="micro">60 s por defecto · 0 = sin límite · máximo 5 min. Iniciar prueba reinicia las estadísticas. El tiempo sigue corriendo si liberas el ratón. Para terminar una prueba infinita, pulsa Esc y Finalizar prueba.</p>
         </section>
         <p class="micro storage-status" id="storage-status" role="status"></p>
         <div class="panel-footer"><button id="reset-all">Restablecer ajustes</button><button id="help-toggle" aria-expanded="false">Cómo funciona ↗</button></div>

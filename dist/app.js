@@ -4,10 +4,11 @@ import { CAMERA, traceShot, shotPercentages } from './targets.js';
 import { advancePosition } from './movement.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { createHitAudio } from './audio.js';
+import { TrainingSession, calculateScore, formatTime } from './session.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, movementSpeed:4, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, movementSpeed:4, sessionDuration:60, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
 const movementKeys=new Set();
 const hitAudio=createHitAudio();
@@ -17,6 +18,8 @@ try { renderer = createRenderer(canvas); } catch(error) { console.error('WebGL:'
 if (!renderer) { $('webgl-error').hidden=false; $('capture').disabled=true; }
 let aspect=16/9, dirty=true, lastSize='', lastTime=0;
 const shots={hits:0,misses:0,headshots:0};
+const training=new TrainingSession();
+let pendingTrainingStart=false,captureRequestActive=false;
 let lastRenderedPose=null,animationTime=0,previousFrameTime=null;
 const setText = (id, text) => { $(id).textContent=text; };
 function updateShootingStats(){
@@ -24,9 +27,54 @@ function updateShootingStats(){
   setText('shot-hits',shots.hits);setText('shot-misses',shots.misses);
   setText('shot-accuracy',`${accuracy.toFixed(1).replace('.',',')}%`);
   setText('shot-headshots',`${headshotRate.toFixed(1).replace('.',',')}%`);
+  renderTraining();
 }
+function renderTraining(){
+  const run=training.snapshot(performance.now());
+  const running=run.status==='running',finished=run.status==='finished';
+  const seconds=running?(run.remainingSeconds===null?Math.floor(run.elapsedSeconds):Math.ceil(run.remainingSeconds)):finished?Math.floor(run.elapsedSeconds):state.sessionDuration;
+  setText('session-clock',!running&&!finished&&seconds===0?'∞':formatTime(seconds));
+  setText('session-status',running?(run.remainingSeconds===null?'SIN LÍMITE · TRANSCURRIDO':'TIEMPO RESTANTE'):finished?'PRUEBA FINALIZADA':'PRUEBA PREPARADA');
+  setText('session-score',run.status==='idle'?'—':calculateScore(shots).toLocaleString('es-ES'));
+  setText('session-start',pendingTrainingStart?'Iniciando…':running?'Finalizar prueba':finished?'Nueva prueba':'Iniciar prueba');
+  $('session-start').disabled=!renderer||pendingTrainingStart;
+  $('session-free').hidden=!finished;
+  $('reset-stats').disabled=running||pendingTrainingStart;
+  $('session-duration').disabled=running||pendingTrainingStart;
+  $('session-duration-value').disabled=running||pendingTrainingStart;
+  $('shooting-stats').classList.toggle('session-finished',finished);
+}
+function releaseTrainingCapture(){
+  movementKeys.clear();releaseRightAim();
+  if(document.pointerLockElement===canvas)document.exitPointerLock();
+}
+function checkTrainingDeadline(now=performance.now()){
+  if(training.refresh(now)){releaseTrainingCapture();renderTraining();}
+  return training.status==='finished';
+}
+function finishTraining(){
+  training.finish(performance.now());releaseTrainingCapture();renderTraining();
+}
+function beginTraining(){
+  pendingTrainingStart=false;
+  Object.assign(shots,{hits:0,misses:0,headshots:0});
+  training.start(state.sessionDuration,performance.now());updateShootingStats();
+}
+function returnToPractice(){
+  pendingTrainingStart=false;training.reset();
+  Object.assign(shots,{hits:0,misses:0,headshots:0});updateShootingStats();
+}
+$('session-start').addEventListener('click',async()=>{
+  if(training.status==='running'){finishTraining();return;}
+  if(!renderer||pendingTrainingStart)return;
+  pendingTrainingStart=true;renderTraining();
+  if(document.pointerLockElement===canvas)beginTraining();else await toggleCapture();
+});
+$('session-free').addEventListener('click',returnToPractice);
+setInterval(()=>{if(training.status==='running'){checkTrainingDeadline();renderTraining();}},100);
 function shoot(){
   if(document.pointerLockElement!==canvas||!renderer)return;
+  if(checkTrainingDeadline())return;
   // Match the pose and moving targets in the frame the player actually sees.
   const result=traceShot(lastRenderedPose??{...state,time:performance.now()/1000});
   if(result.hit){shots.hits++;if(result.headshot)shots.headshots++;}else shots.misses++;
@@ -34,7 +82,7 @@ function shoot(){
   if(result.hit)hitAudio.playHit(result.headshot);
 }
 $('reset-stats').addEventListener('click',()=>{
-  Object.assign(shots,{hits:0,misses:0,headshots:0});updateShootingStats();
+  if(training.status!=='running')returnToPractice();
 });
 function adsVertical() { return zoomFov(state.relative ? state.vertical : 55, state.zoom); }
 function multiplier() { return state.usa ? usaMultiplier(state.vertical,adsVertical(),state.coefficient) : 1; }
@@ -63,7 +111,7 @@ function update() {
   $('hfov').min=30;$('hfov').max=160;
   $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
-  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'movement-speed':state.movementSpeed})){
+  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'movement-speed':state.movementSpeed,'session-duration':state.sessionDuration})){
     const field=$(id+'-value');
     field.min=$(id).min;field.max=$(id).max;
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
@@ -95,16 +143,17 @@ function update() {
   });
   setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
   setText('storage-status',saveSettings(state)?'Ajustes guardados en este navegador':'No se pueden guardar los ajustes en este navegador');
+  renderTraining();
   dirty=true;
 }
-for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
+for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
 $('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),referenceAspect);update();});
-for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']]){
+for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]){
   const field=$(id+'-value');
   const apply=(commit)=>{
     const value=field.valueAsNumber;
     if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,referenceAspect):state[key];return;}
-    if(['sensitivity','target-count'].includes(id)&&!Number.isInteger(value)){field.value=state[key];return;}
+    if(['sensitivity','target-count','session-duration'].includes(id)&&!Number.isInteger(value)){field.value=state[key];return;}
     const min=Number(field.min),max=Number(field.max);
     if(!commit&&(value<min||value>max))return;
     const bounded=Math.max(min,Math.min(max,value));
@@ -130,10 +179,11 @@ $('apply-resolution').addEventListener('click',()=>{
 });
 function syncSettingsControls(){
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly']])$(id).checked=state[key];
-  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']])$(id).value=state[key];
+  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
   $('custom-resolution').hidden=state.resolution!=='custom';
 }
 $('reset-all').addEventListener('click',()=>{
+  returnToPractice();
   Object.assign(state,initial,{yaw:0,pitch:0,position:[...CAMERA]});animationTime=0;movementKeys.clear();
   syncSettingsControls();layout();
 });
@@ -149,10 +199,13 @@ async function toggleCapture(){
   try{
     if(document.pointerLockElement===canvas){document.exitPointerLock();return;}
     if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');
+    captureRequestActive=true;
     hitAudio.unlock();
     try{await canvas.requestPointerLock({unadjustedMovement:true});}
     catch(error){if(error.name!=='NotSupportedError')throw error;await canvas.requestPointerLock();}
-  }catch{setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
+    if(pendingTrainingStart&&document.pointerLockElement===canvas)beginTraining();
+  }catch{pendingTrainingStart=false;renderTraining();setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
+  finally{captureRequestActive=false;}
 }
 $('capture').addEventListener('click',toggleCapture);
 document.addEventListener('pointerlockchange',()=>{
@@ -160,9 +213,10 @@ document.addEventListener('pointerlockchange',()=>{
   setText('interaction-hint',locked?'WASD: moverte · Clic izquierdo: disparar · Clic derecho: apuntar':'Iniciar o Espacio · WASD para moverte · Clic derecho para apuntar');
   $('capture').textContent=locked?'Detener · Espacio':'Iniciar · Espacio';
   $('capture').setAttribute('aria-pressed',String(locked));
+  if(locked&&pendingTrainingStart)beginTraining();
   if(!locked){movementKeys.clear();releaseRightAim();}
 });
-document.addEventListener('pointerlockerror',()=>setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.'));
+document.addEventListener('pointerlockerror',()=>{if(captureRequestActive)return;pendingTrainingStart=false;renderTraining();setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');});
 let rightAimHeld=false;
 function releaseRightAim(){if(!rightAimHeld)return;rightAimHeld=false;state.ads=false;update();}
 function move(dx,dy){const sensitivity=radians(sensitivityDegreesPerCount(state.sensitivity))*(state.ads?multiplier():1);state.yaw+=dx*sensitivity;state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch-dy*sensitivity));dirty=true;}
@@ -194,7 +248,7 @@ document.addEventListener('keydown',e=>{
     }
     return;
   }
-  if(e.code!=='Space'||e.repeat||e.target.isContentEditable||['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName))return;
+  if(e.code!=='Space'||e.repeat||e.target.isContentEditable||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
   e.preventDefault();toggleCapture();
 });
 document.addEventListener('keyup',e=>movementKeys.delete(e.code));
@@ -204,6 +258,7 @@ syncSettingsControls();
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
 layout();
 function frame(now){
+  checkTrainingDeadline(now);
   const elapsed=previousFrameTime===null?0:Math.min((now-previousFrameTime)/1000,.1);previousFrameTime=now;
   if(state.motion)animationTime+=elapsed*state.targetSpeed;
   if(document.pointerLockElement===canvas&&movementKeys.size){
@@ -219,4 +274,4 @@ function frame(now){
 }
 requestAnimationFrame(frame);
 // Read-only diagnostic snapshot for integration checks and reproducible experiments.
-window.sensitivityLab={snapshot:()=>({...state,aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),shots:{...shots,...shotPercentages(shots)},renderedPose:lastRenderedPose?{...lastRenderedPose}:null,webgl:Boolean(renderer)})};
+window.sensitivityLab={snapshot:()=>({...state,aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),shots:{...shots,...shotPercentages(shots)},training:{...training.snapshot(performance.now()),score:calculateScore(shots)},renderedPose:lastRenderedPose?{...lastRenderedPose}:null,webgl:Boolean(renderer)})};

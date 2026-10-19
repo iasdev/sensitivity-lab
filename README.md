@@ -40,6 +40,12 @@ WASD mueve al jugador en el plano horizontal según su orientación, solo con el
 
 Los ajustes se guardan automáticamente en localStorage, bajo `sensitivity-lab.settings.v1`, con esquema versionado y validación de campos y límites al restaurar. Incluye FOV, resolución, USA, sensibilidad, dianas, velocidades y opciones de movimiento y mira. No se guardan estadísticas, captura, ADS mantenido, posición de cámara ni reloj de animación. Restablecer ajustes guarda los predeterminados. La aplicación sigue funcionando si el navegador bloquea el almacenamiento y lo indica en el panel.
 
+## Prueba cronometrada
+
+Duración configurable de 0 a 300 segundos (60 por defecto); 0 representa tiempo infinito. Iniciar prueba solicita captura y solo entonces reinicia las estadísticas e inicia el reloj. La puntuación es max(0, 100 × aciertos + 50 × headshots − 25 × fallos); un headshot ya está incluido en los aciertos y suma 150 puntos en total.
+
+El reloj usa tiempo monotónico real y sigue avanzando al liberar el ratón o cambiar de pestaña. Se comprueba el vencimiento antes de cada disparo: al cumplirse el límite se congela el resultado, se libera la captura y no se permiten más disparos hasta iniciar otra prueba o volver a práctica libre. El botón Finalizar prueba cierra anticipadamente, incluido el modo infinito. Mientras corre una prueba no se pueden reiniciar los contadores ni cambiar su duración. La duración se guarda con los ajustes; ni la sesión, ni la puntuación ni las estadísticas se persisten.
+
 ## Modelo
 
 Para relación de aspecto A, H = 2 atan(A tan(V/2)). El aumento Z usa V_ads = 2 atan(tan(V_ref/2)/Z). Con FOV relativo desactivado V_ref = 55°; activado V_ref = V_base.
