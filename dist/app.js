@@ -7,7 +7,7 @@ import { createHitAudio } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, movementSpeed:4, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, movementSpeed:4, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
 const movementKeys=new Set();
 const hitAudio=createHitAudio();
@@ -58,6 +58,7 @@ function layout() {
   update();
 }
 function update() {
+  $('viewport').classList.toggle('outlines-only',state.outlinesOnly);
   const hfov=horizontalFov(state.vertical,referenceAspect);
   $('hfov').min=30;$('hfov').max=160;
   $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
@@ -115,7 +116,7 @@ for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],[
   field.addEventListener('change',()=>apply(true));
   field.addEventListener('blur',update);
 }
-for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;update();});
+for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;update();});
 document.querySelectorAll('[data-coefficient]').forEach(button=>button.addEventListener('click',()=>{state.coefficient=Number(button.dataset.coefficient);$('coefficient').value=state.coefficient;update();}));
 $('resolution').addEventListener('change',e=>{
   const value=e.target.value;$('custom-resolution').hidden=value!=='custom';
@@ -128,7 +129,7 @@ $('apply-resolution').addEventListener('click',()=>{
   state.width=Number($('width').value);state.height=Number($('height').value);state.resolution='custom';layout();
 });
 function syncSettingsControls(){
-  for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']])$(id).checked=state[key];
+  for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly']])$(id).checked=state[key];
   for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']])$(id).value=state[key];
   $('custom-resolution').hidden=state.resolution!=='custom';
 }
@@ -212,7 +213,7 @@ function frame(now){
   if(renderer&&(dirty||(state.motion&&state.targetSpeed>0))&&now-lastTime>=30){
     // Keep the path phase when pausing or changing speed, without teleporting targets.
     lastRenderedPose={yaw:state.yaw,pitch:state.pitch,position:[...state.position],time:animationTime,motion:true,targetCount:state.targetCount};
-    renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,...lastRenderedPose});dirty=false;lastTime=now;
+    renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,outlinesOnly:state.outlinesOnly,...lastRenderedPose});dirty=false;lastTime=now;
   }
   requestAnimationFrame(frame);
 }

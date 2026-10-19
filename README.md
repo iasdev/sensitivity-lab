@@ -14,7 +14,7 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 
 - FOV horizontal y vertical vinculados a una referencia fija 16:9. Ambos ajustes permanecen iguales al cambiar resolución; la cámara conserva el FOV vertical y amplía el FOV horizontal real según el aspecto, sin estirar la imagen. La métrica FOV se etiqueta como referencia 16:9. Campos numéricos junto a cada slider para introducir valores precisos, con sincronización bidireccional y límites.
 - Resoluciones predefinidas, dimensiones personalizadas o ajuste al espacio disponible; botón de pantalla completa real.
-- Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación.
+- Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación. El toggle «Solo bordes» elimina el relleno verde y usa una paleta neutra para la escena, conservando los contornos rojo y verde; se guarda junto con los ajustes.
 - Ajustes, métricas y controles del ratón integrados en la escena como overlays translúcidos; ajustes plegados inicialmente en móvil.
 - Mira con aumento óptico 1–8×; FOV relativo al jugador o referencia fija de 55° verticales.
 - USA activable, coeficiente 0–300%, sensibilidad base y dianas móviles por defecto.

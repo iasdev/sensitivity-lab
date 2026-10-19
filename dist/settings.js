@@ -3,7 +3,7 @@ import { verticalFov } from './math.js';
 export const SETTINGS_KEY='sensitivity-lab.settings.v1';
 const ranges={vertical:[verticalFov(30,16/9),verticalFov(160,16/9)],zoom:[1,8],coefficient:[0,300],sensitivity:[0,200],targetCount:[1,24],targetSpeed:[0,4],movementSpeed:[0,12],width:[320,7680],height:[240,4320]};
 const integers=new Set(['sensitivity','targetCount','width','height']);
-const booleans=['usa','relative','motion'];
+const booleans=['usa','relative','motion','outlinesOnly'];
 const resolutions=['1920x1080','2560x1440','1920x1200','1440x1080','3440x1440','screen','custom'];
 
 export function sanitizeSettings(input,defaults){
