@@ -2,6 +2,7 @@ import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, 
 import { createRenderer } from './renderer.js';
 
 const $ = id => document.getElementById(id);
+const referenceAspect=16/9;
 const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, yaw:0, pitch:0 };
 const canvas = $('scene');
@@ -13,8 +14,7 @@ const setText = (id, text) => { $(id).textContent=text; };
 function adsVertical() { return zoomFov(state.relative ? state.vertical : 55, state.zoom); }
 function multiplier() { return state.usa ? usaMultiplier(state.vertical,adsVertical(),state.coefficient) : 1; }
 
-function layout(preserveHorizontal = true) {
-  const previousHorizontal=horizontalFov(state.vertical,aspect);
+function layout() {
   const viewport=$('viewport');
   const availableWidth=viewport.clientWidth;
   const availableHeight=viewport.clientHeight;
@@ -22,7 +22,6 @@ function layout(preserveHorizontal = true) {
     aspect=availableWidth/availableHeight;
     state.width=Math.round(availableWidth);state.height=Math.round(availableHeight);
   }else aspect=state.width/state.height;
-  if(preserveHorizontal!==false)state.vertical=verticalFov(previousHorizontal,aspect);
   const width=Math.min(availableWidth,availableHeight*aspect);
   const height=width/aspect;
   const frame=$('render-frame');frame.style.width=`${width}px`;frame.style.height=`${height}px`;
@@ -34,9 +33,9 @@ function layout(preserveHorizontal = true) {
   update();
 }
 function update() {
-  const hfov=horizontalFov(state.vertical,aspect);
+  const hfov=horizontalFov(state.vertical,referenceAspect);
   $('hfov').min=30;$('hfov').max=160;
-  $('vfov').min=verticalFov(30,aspect);$('vfov').max=verticalFov(160,aspect);
+  $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
   for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity})){
     const field=$(id+'-value');
@@ -48,7 +47,7 @@ function update() {
     const cm=sensitivityCm360(state.sensitivity,dpi);
     setText('distance-'+dpi,Number.isFinite(cm)?`${cm.toFixed(1).replace('.',',')} cm`:'∞ · sin giro');
   }
-  setText('actual-fov',`${horizontalFov(activeVertical,aspect).toFixed(1)}° / ${activeVertical.toFixed(1)}°`);
+  setText('actual-fov',`${horizontalFov(activeVertical,referenceAspect).toFixed(1)}° / ${activeVertical.toFixed(1)}°`);
   setText('sensitivity-ratio',`${multiplier().toFixed(3)}×`);
   const fraction=referenceFraction(state.coefficient,aspect);
   setText('monitor-distance',state.usa?`${(fraction*100).toFixed(1)}% del semiancho`:'Desactivado');
@@ -71,16 +70,16 @@ function update() {
   dirty=true;
 }
 for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
-$('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),aspect);update();});
+$('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),referenceAspect);update();});
 for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]){
   const field=$(id+'-value');
   const apply=(commit)=>{
     const value=field.valueAsNumber;
-    if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,aspect):state[key];return;}
+    if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,referenceAspect):state[key];return;}
     const min=Number(field.min),max=Number(field.max);
     if(!commit&&(value<min||value>max))return;
     const bounded=Math.max(min,Math.min(max,value));
-    state[key]=id==='hfov'?verticalFov(bounded,aspect):bounded;
+    state[key]=id==='hfov'?verticalFov(bounded,referenceAspect):bounded;
     if(commit)field.value=bounded;
     update();
   };
@@ -104,7 +103,7 @@ $('reset-all').addEventListener('click',()=>{
   Object.assign(state,initial,{yaw:0,pitch:0});
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']])$(id).checked=state[key];
   for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height']])$(id).value=state[key];
-  $('custom-resolution').hidden=true;layout(false);
+  $('custom-resolution').hidden=true;layout();
 });
 $('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Plegar controles':'Expandir controles');$('collapse').textContent=open?'−':'+';});
 $('help-toggle').addEventListener('click',()=>{const open=$('help').hidden;$('help').hidden=!open;$('help-toggle').setAttribute('aria-expanded',String(open));if(open)$('help').scrollIntoView({block:'nearest',behavior:'smooth'});});
@@ -162,11 +161,11 @@ window.addEventListener('blur',releaseRightAim);
 window.addEventListener('resize',layout);
 $('resolution').value=state.resolution;
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
-layout(false);
+layout();
 function frame(now){
   if(renderer&&(dirty||state.motion)&&now-lastTime>=30){renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,yaw:state.yaw,pitch:state.pitch,time:now/1000,motion:state.motion});dirty=false;lastTime=now;}
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 // Read-only diagnostic snapshot for integration checks and reproducible experiments.
-window.sensitivityLab={snapshot:()=>({...state,aspect,adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),webgl:Boolean(renderer)})};
+window.sensitivityLab={snapshot:()=>({...state,aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),webgl:Boolean(renderer)})};

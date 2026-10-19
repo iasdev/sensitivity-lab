@@ -12,7 +12,7 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 
 ## Controles
 
-- FOV horizontal y vertical vinculados a la relación de aspecto. Cambiar resolución o tamaño de pantalla conserva el FOV horizontal elegido y recalcula el vertical. Campos numéricos junto a cada slider para introducir valores precisos, con sincronización bidireccional y límites.
+- FOV horizontal y vertical vinculados a una referencia fija 16:9. Ambos ajustes permanecen iguales al cambiar resolución; la cámara conserva el FOV vertical y amplía el FOV horizontal real según el aspecto, sin estirar la imagen. La métrica FOV se etiqueta como referencia 16:9. Campos numéricos junto a cada slider para introducir valores precisos, con sincronización bidireccional y límites.
 - Resoluciones predefinidas, dimensiones personalizadas o ajuste al espacio disponible; botón de pantalla completa real.
 - Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación.
 - Ajustes, métricas y controles del ratón integrados en la escena como overlays translúcidos; ajustes plegados inicialmente en móvil.
