@@ -89,17 +89,23 @@ $('fullscreen').addEventListener('click',async()=>{
 });
 document.addEventListener('fullscreenchange',()=>{document.body.classList.toggle('immersive',Boolean(document.fullscreenElement));layout();});
 $('capture').addEventListener('click',async()=>{
-  try{if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');await canvas.requestPointerLock();}
-  catch{setText('interaction-hint','No se pudo capturar el ratón. Puedes arrastrar para mirar.');}
+  try{
+    if(document.pointerLockElement===canvas){document.exitPointerLock();return;}
+    if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');
+    await canvas.requestPointerLock();
+  }catch{setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
 });
-document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;setText('interaction-hint',locked?'Mueve el ratón · Mantén clic derecho para apuntar':'Arrastra para mirar · Mantén clic derecho para apuntar');$('capture').textContent=locked?'Ratón capturado · Esc':'Probar con ratón ↗';if(!locked)releaseRightAim();});
-document.addEventListener('pointerlockerror',()=>setText('interaction-hint','Captura no disponible. Arrastra para mirar.'));
-let dragging=false,lastX=0,lastY=0,rightAimHeld=false;
+document.addEventListener('pointerlockchange',()=>{
+  const locked=document.pointerLockElement===canvas;
+  setText('interaction-hint',locked?'Mueve el ratón · Mantén clic derecho para apuntar':'Pulsa Iniciar para mover la cámara · Mantén clic derecho para apuntar');
+  $('capture').textContent=locked?'Detener · Esc':'Iniciar';
+  $('capture').setAttribute('aria-pressed',String(locked));
+  if(!locked)releaseRightAim();
+});
+document.addEventListener('pointerlockerror',()=>setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.'));
+let rightAimHeld=false;
 function releaseRightAim(){if(!rightAimHeld)return;rightAimHeld=false;state.ads=false;update();}
 function move(dx,dy){const sensitivity=radians(state.sensitivity/100)*(state.ads?multiplier():1);state.yaw+=dx*sensitivity;state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch-dy*sensitivity));dirty=true;}
-canvas.addEventListener('pointerdown',e=>{if(e.button!==0||document.pointerLockElement===canvas)return;dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(!dragging||document.pointerLockElement===canvas)return;move(e.clientX-lastX,e.clientY-lastY);lastX=e.clientX;lastY=e.clientY;});
-canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas)move(e.movementX,e.movementY);});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{
@@ -121,7 +127,7 @@ document.addEventListener('mouseup',e=>{if(e.button===2)releaseRightAim();});
 document.addEventListener('pointercancel',releaseRightAim);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseRightAim();});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();state.ads=!state.ads;update();}});
-window.addEventListener('blur',()=>{dragging=false;releaseRightAim();});
+window.addEventListener('blur',releaseRightAim);
 window.addEventListener('resize',layout);
 $('resolution').value=state.resolution;
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
