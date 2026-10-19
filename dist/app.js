@@ -2,7 +2,7 @@ import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, 
 import { createRenderer } from './renderer.js';
 
 const $ = id => document.getElementById(id);
-const initial = { vertical: 70, zoom: 2, coefficient: 133, sensitivity: 7, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, yaw:0, pitch:0 };
 const canvas = $('scene');
 let renderer;
