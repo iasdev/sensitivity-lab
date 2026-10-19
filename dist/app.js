@@ -76,6 +76,7 @@ for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],[
   const apply=(commit)=>{
     const value=field.valueAsNumber;
     if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,referenceAspect):state[key];return;}
+    if(id==='sensitivity'&&!Number.isInteger(value)){field.value=state.sensitivity;return;}
     const min=Number(field.min),max=Number(field.max);
     if(!commit&&(value<min||value>max))return;
     const bounded=Math.max(min,Math.min(max,value));
