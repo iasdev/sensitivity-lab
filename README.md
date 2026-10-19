@@ -21,6 +21,12 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 - Iniciar/Detener activa o desactiva el control del ratón; arrastrar con el botón izquierdo no mueve la cámara; Espacio para iniciar/detener la captura; mantener clic derecho sobre la escena para ADS y soltar para volver a la cadera, con o sin captura; Esc libera el ratón.
 - Rueda sobre la escena: arriba aumenta el zoom y abajo lo reduce en pasos de 0,25×, entre 1× y 8×; sincroniza el slider y funciona con el ratón capturado.
 
+## Disparos
+
+Con el ratón capturado, cada clic izquierdo dispara un rayo desde la retícula. Se usa la cámara y el tiempo del último frame mostrado para coincidir con los blancos móviles. La geometría de tablero, cuerpo y cabeza se comparte entre shader y detector; suelo, postes y barandillas bloquean disparos. El tablero completo y la silueta cuentan como acierto; únicamente la esfera visible de la cabeza cuenta como headshot. Cada disparo cuenta una sola vez y la superficie más cercana decide el resultado.
+
+El overlay superior izquierdo muestra aciertos, fallos, precisión (aciertos/disparos) y headshots (headshots/aciertos). Pausar conserva los contadores; el botón ↺ del overlay los reinicia. Se muestra un marcador breve de acierto, fallo o headshot.
+
 ## Modelo
 
 Para relación de aspecto A, H = 2 atan(A tan(V/2)). El aumento Z usa V_ads = 2 atan(tan(V_ref/2)/Z). Con FOV relativo desactivado V_ref = 55°; activado V_ref = V_base.

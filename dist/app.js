@@ -1,5 +1,6 @@
 import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, radians, sensitivityDegreesPerCount, sensitivityCm360 } from './math.js';
 import { createRenderer } from './renderer.js';
+import { traceShot, shotPercentages } from './targets.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
@@ -10,7 +11,32 @@ let renderer;
 try { renderer = createRenderer(canvas); } catch(error) { console.error('WebGL:',error); }
 if (!renderer) { $('webgl-error').hidden=false; $('capture').disabled=true; }
 let aspect=16/9, dirty=true, lastSize='', lastTime=0;
+const shots={hits:0,misses:0,headshots:0};
+let lastRenderedPose=null,feedbackTimer;
 const setText = (id, text) => { $(id).textContent=text; };
+function updateShootingStats(){
+  const {accuracy,headshotRate}=shotPercentages(shots);
+  setText('shot-hits',shots.hits);setText('shot-misses',shots.misses);
+  setText('shot-accuracy',`${accuracy.toFixed(1).replace('.',',')}%`);
+  setText('shot-headshots',`${headshotRate.toFixed(1).replace('.',',')}%`);
+}
+function shoot(){
+  if(document.pointerLockElement!==canvas||!renderer)return;
+  // Match the pose and moving targets in the frame the player actually sees.
+  const result=traceShot(lastRenderedPose??{...state,time:performance.now()/1000});
+  if(result.hit){shots.hits++;if(result.headshot)shots.headshots++;}else shots.misses++;
+  updateShootingStats();
+  const feedback=$('shot-feedback');
+  const kind=result.headshot?'headshot':result.hit?'hit':'miss';
+  feedback.className='';void feedback.offsetWidth;
+  feedback.className=`visible ${kind}`;
+  feedback.textContent=result.headshot?'HEADSHOT':result.hit?'ACIERTO':'FALLO';
+  clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{feedback.className='';feedback.textContent='';},650);
+}
+$('reset-stats').addEventListener('click',()=>{
+  Object.assign(shots,{hits:0,misses:0,headshots:0});updateShootingStats();
+  clearTimeout(feedbackTimer);$('shot-feedback').className='';$('shot-feedback').textContent='';
+});
 function adsVertical() { return zoomFov(state.relative ? state.vertical : 55, state.zoom); }
 function multiplier() { return state.usa ? usaMultiplier(state.vertical,adsVertical(),state.coefficient) : 1; }
 
@@ -126,7 +152,7 @@ async function toggleCapture(){
 $('capture').addEventListener('click',toggleCapture);
 document.addEventListener('pointerlockchange',()=>{
   const locked=document.pointerLockElement===canvas;
-  setText('interaction-hint',locked?'Mueve el ratón · Mantén clic derecho para apuntar':'Iniciar o Espacio para mover la cámara · Mantén clic derecho para apuntar');
+  setText('interaction-hint',locked?'Clic izquierdo: disparar · Mantén clic derecho: apuntar':'Iniciar o Espacio para mover y disparar · Mantén clic derecho para apuntar');
   $('capture').textContent=locked?'Detener · Espacio':'Iniciar · Espacio';
   $('capture').setAttribute('aria-pressed',String(locked));
   if(!locked)releaseRightAim();
@@ -146,6 +172,7 @@ canvas.addEventListener('wheel',e=>{
   update();
 },{passive:false});
 document.addEventListener('mousedown',e=>{
+  if(e.button===0&&document.pointerLockElement===canvas){e.preventDefault();shoot();return;}
   if(e.button!==2||(e.target!==canvas&&document.pointerLockElement!==canvas))return;
   e.preventDefault();
   rightAimHeld=true;
@@ -165,9 +192,12 @@ $('resolution').value=state.resolution;
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
 layout();
 function frame(now){
-  if(renderer&&(dirty||state.motion)&&now-lastTime>=30){renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,yaw:state.yaw,pitch:state.pitch,time:now/1000,motion:state.motion});dirty=false;lastTime=now;}
+  if(renderer&&(dirty||state.motion)&&now-lastTime>=30){
+    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,time:now/1000,motion:state.motion};
+    renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,...lastRenderedPose});dirty=false;lastTime=now;
+  }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 // Read-only diagnostic snapshot for integration checks and reproducible experiments.
-window.sensitivityLab={snapshot:()=>({...state,aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),webgl:Boolean(renderer)})};
+window.sensitivityLab={snapshot:()=>({...state,aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),shots:{...shots,...shotPercentages(shots)},renderedPose:lastRenderedPose?{...lastRenderedPose}:null,webgl:Boolean(renderer)})};
