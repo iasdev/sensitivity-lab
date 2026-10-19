@@ -53,9 +53,6 @@ function update() {
   setText('monitor-distance',state.usa?`${(fraction*100).toFixed(1)}% del semiancho`:'Desactivado');
   setText('resolution-label',`${state.width} × ${state.height} / ${(aspect).toFixed(2)}:1`);
   setText('aspect-label',`Relación ${aspect.toFixed(3)}:1 · Vista escalada para encajar`);
-  const edge=aspect*100;
-  setText('edge-preset',`${Math.round(edge)}% · Borde`);
-  $('edge-preset').disabled=edge>300;
   const clipped=fraction>1;
   setText('usa-description',!state.usa?'Sin compensación: mismo giro angular con y sin mira.':state.coefficient===0?'Referencia en el centro: conserva la respuesta para correcciones muy pequeñas.':clipped?'La referencia queda fuera de la imagen. El área verde se recorta al campo visible.':`Iguala el recorrido del centro al ${(fraction*100).toFixed(1)}% del semiancho. No implica igualar todos los puntos.`);
   $('usa-area').hidden=!state.usa;$('reference-points').hidden=!state.usa||clipped||state.coefficient===0;
@@ -65,7 +62,11 @@ function update() {
   setText('area-label',state.coefficient===0?'USA · CENTRO':clipped?'USA · REFERENCIA FUERA DE VISTA':`USA · ${state.coefficient.toFixed(1).replace('.0','')}%`);
   $('coefficient').disabled=!state.usa;
   $('coefficient-value').disabled=!state.usa;
-  document.querySelectorAll('[data-coefficient]').forEach(button=>button.classList.toggle('active',Math.abs(state.coefficient-(button.dataset.coefficient==='edge'?edge:Number(button.dataset.coefficient)))<.15));
+  document.querySelectorAll('[data-coefficient]').forEach(button=>{
+    const active=Math.abs(state.coefficient-Number(button.dataset.coefficient))<.005;
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
   setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
   dirty=true;
 }
@@ -89,7 +90,7 @@ for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],[
   field.addEventListener('blur',update);
 }
 for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;update();});
-document.querySelectorAll('[data-coefficient]').forEach(button=>button.addEventListener('click',()=>{state.coefficient=button.dataset.coefficient==='edge'?aspect*100:Number(button.dataset.coefficient);$('coefficient').value=state.coefficient;update();}));
+document.querySelectorAll('[data-coefficient]').forEach(button=>button.addEventListener('click',()=>{state.coefficient=Number(button.dataset.coefficient);$('coefficient').value=state.coefficient;update();}));
 $('resolution').addEventListener('change',e=>{
   const value=e.target.value;$('custom-resolution').hidden=value!=='custom';
   state.resolution=value;
