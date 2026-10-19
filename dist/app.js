@@ -104,6 +104,14 @@ canvas.addEventListener('pointermove',e=>{if(!dragging||document.pointerLockElem
 canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas)move(e.movementX,e.movementY);});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{
+  if(e.ctrlKey||e.deltaY===0)return;
+  e.preventDefault();
+  const zoomControl=$('zoom');
+  state.zoom=Math.max(Number(zoomControl.min),Math.min(Number(zoomControl.max),Math.round((state.zoom-Math.sign(e.deltaY)*.25)*100)/100));
+  zoomControl.value=state.zoom;
+  update();
+},{passive:false});
 document.addEventListener('mousedown',e=>{if(e.button===2&&document.pointerLockElement===canvas&&!heldADS){previousADS=state.ads;heldADS=true;state.ads=true;update();}});
 document.addEventListener('mouseup',e=>{if(e.button===2&&heldADS){state.ads=previousADS;heldADS=false;update();}});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();state.ads=!state.ads;update();}});

@@ -18,6 +18,7 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 - Mira con aumento óptico 1–8×; FOV relativo al jugador o referencia fija de 55° verticales.
 - USA activable, coeficiente 0–300%, sensibilidad base y objetivos móviles.
 - Arrastrar para mirar; capturar el ratón para probar libremente; Espacio o botón para alternar ADS; clic derecho mantenido durante captura; Esc libera el ratón.
+- Rueda sobre la escena: arriba aumenta el zoom y abajo lo reduce en pasos de 0,25×, entre 1× y 8×; sincroniza el slider y funciona con el ratón capturado.
 
 ## Modelo
 
