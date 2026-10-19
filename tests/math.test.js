@@ -8,12 +8,19 @@ test('sensitivity 7 reproduces the supplied physical distances',()=>{
   close(sensitivityCm360(7,3200),19.75);
   close(sensitivityDegreesPerCount(7)*(79/2.54*800),360);
 });
-test('sensitivity zero stops rotation and the scale remains proportional through 200',()=>{
-  close(sensitivityDegreesPerCount(0),0);
-  assert.equal(sensitivityCm360(0,800),Infinity);
-  close(sensitivityCm360(14,800),39.5);
-  close(sensitivityCm360(200,800),79*7/200);
-  close(sensitivityDegreesPerCount(7.25)/sensitivityDegreesPerCount(7),7.25/7);
+test('sensitivity 100 reproduces all three rounded screenshot distances',()=>{
+  assert.equal(sensitivityCm360(100,800).toFixed(1),'6.5');
+  assert.equal(sensitivityCm360(100,1600).toFixed(1),'3.2');
+  assert.equal(sensitivityCm360(100,3200).toFixed(1),'1.6');
+  assert.equal(sensitivityCm360(7,3200).toFixed(1),'19.8');
+});
+test('affine scale has a nonzero minimum and consistent distance and camera speed',()=>{
+  assert.ok(sensitivityDegreesPerCount(0)>0);
+  for(const s of [0,7,7.25,14,100,200]){
+    close(sensitivityDegreesPerCount(s)*sensitivityCm360(s,800)*800/2.54,360);
+    assert.ok(sensitivityDegreesPerCount(s+.01)>sensitivityDegreesPerCount(s));
+  }
+  close(sensitivityDegreesPerCount(100)-sensitivityDegreesPerCount(50),sensitivityDegreesPerCount(50)-sensitivityDegreesPerCount(0));
 });
 test('horizontal and vertical FOV describe the same camera across aspect ratios',()=>{
   for(const aspect of [4/3,16/9,3440/1440,.7])for(const vertical of [20,55,70,110])close(verticalFov(horizontalFov(vertical,aspect),aspect),vertical);

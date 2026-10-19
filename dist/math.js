@@ -10,6 +10,9 @@ export function usaMultiplier(baseVertical, adsVertical, coefficient) {
   return c < 1e-8 ? ads / base : Math.atan(c * ads) / Math.atan(c * base);
 }
 export const referenceFraction = (coefficient, aspect) => coefficient / 100 / aspect;
-// User reference: sensitivity 7 = 79 cm/360 at 800 DPI. Other values scale linearly.
-export const sensitivityDegreesPerCount = sensitivity => (360 * 2.54 / (79 * 800)) * (sensitivity / 7);
-export const sensitivityCm360 = (sensitivity, dpi) => sensitivity === 0 ? Infinity : (360 / sensitivityDegreesPerCount(sensitivity)) * 2.54 / dpi;
+// Affine BF6 model: nonzero minimum (offset 4/3), anchored to the user's 7 = 79 cm at 800 DPI.
+// Compatible with measured yaw ≈ 0.00173623 * sensitivity + 0.00231498 deg/count:
+// https://sensitivitymatch.com/mouse-sensitivity-converter/cs2-to-battlefield-6/
+const sensitivityOffset = 4 / 3;
+export const sensitivityDegreesPerCount = sensitivity => (360 * 2.54 / (79 * 800)) * ((sensitivity + sensitivityOffset) / (7 + sensitivityOffset));
+export const sensitivityCm360 = (sensitivity, dpi) => 79 * (800 / dpi) * ((7 + sensitivityOffset) / (sensitivity + sensitivityOffset));
