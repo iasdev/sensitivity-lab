@@ -48,7 +48,7 @@ The animation clock advances at the selected speed. Disabling movement or select
 
 ## Player movement and saved settings
 
-WASD moves the player horizontally relative to camera yaw while the mouse is captured. Diagonal movement is normalized. Movement is bounded by the range edges. Releasing capture, losing focus, or hiding the tab clears held movement keys to prevent stuck movement. Rendering and hit detection use the same camera position.
+WASD moves the player horizontally relative to camera yaw while the mouse is captured. Diagonal movement is normalized. Movement is bounded by the range edges and stops at the near edge of the thick red firing line, preventing entry into the target area. The line remains red with Outlines only enabled. Releasing capture, losing focus, or hiding the tab clears held movement keys to prevent stuck movement. Rendering and hit detection use the same camera position.
 
 Settings are saved automatically in localStorage under `sensitivity-lab.settings.v1`, using a versioned schema with field and range validation. Saved preferences include FOV, resolution, USA, sensitivity, target count, movement options, speeds, outlines, and trial duration. Statistics, trial results, mouse capture, held ADS, camera position, and animation time are not saved. Reset settings saves the defaults. The application still works when browser storage is blocked and reports this in the settings panel.
 

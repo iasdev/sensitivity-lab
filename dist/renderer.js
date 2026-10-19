@@ -1,4 +1,4 @@
-import { TARGETS, CAMERA } from './targets.js';
+import { TARGETS, CAMERA, SHOOTING_LINE } from './targets.js';
 const scalar=value=>Number(value).toFixed(8);
 const vector=value=>`vec3(${value.map(scalar).join(',')})`;
 const vertex = `attribute vec2 aPosition;
@@ -16,7 +16,7 @@ void main(){
  float cp=cos(uPitch),sp=sin(uPitch);rd=vec3(rd.x,rd.y*cp-rd.z*sp,rd.y*sp+rd.z*cp);
  float cy=cos(uYaw),sy=sin(uYaw);rd=vec3(rd.x*cy-rd.z*sy,rd.y,rd.x*sy+rd.z*cy);
  vec3 fog=mix(vec3(.11,.15,.18),vec3(.26,.105,.10),uColorFill);vec3 sky=mix(vec3(.055,.08,.11),vec3(.115,.065,.068),uColorFill);vec3 color=mix(fog,sky,smoothstep(-.1,.9,rd.y));float best=250.;
- if(rd.y<-.001){float t=-ro.y/rd.y;if(t<best){best=t;vec3 p=ro+rd*t;vec2 grid=abs(fract(p.xz*.25-.5)-.5)/max(vec2(.006),vec2(t*.00045));float line=1.-min(min(grid.x,grid.y),1.);float lanes=1.-smoothstep(.025,.06,abs(abs(p.x)-8.));color=mix(vec3(.19,.22,.23),vec3(.32,.14,.125),uColorFill)+line*mix(vec3(.06,.07,.07),vec3(.08,.035,.025),uColorFill)+lanes*mix(vec3(.16,.16,.10),vec3(.18,.085,.035),uColorFill);float start=1.-smoothstep(.02,.06,abs(p.z-1.));color+=start*mix(vec3(.18,.18,.11),vec3(.18,.09,.04),uColorFill);}}
+ if(rd.y<-.001){float t=-ro.y/rd.y;if(t<best){best=t;vec3 p=ro+rd*t;vec2 grid=abs(fract(p.xz*.25-.5)-.5)/max(vec2(.006),vec2(t*.00045));float line=1.-min(min(grid.x,grid.y),1.);float lanes=1.-smoothstep(.025,.06,abs(abs(p.x)-8.));color=mix(vec3(.19,.22,.23),vec3(.32,.14,.125),uColorFill)+line*mix(vec3(.06,.07,.07),vec3(.08,.035,.025),uColorFill)+lanes*mix(vec3(.16,.16,.10),vec3(.18,.085,.035),uColorFill);float start=1.-smoothstep(${scalar(SHOOTING_LINE.width/2-.015)},${scalar(SHOOTING_LINE.width/2)},abs(p.z-${scalar(SHOOTING_LINE.z)}));color=mix(color,vec3(.95,.035,.025),start);}}
  float wall=box(ro,rd,vec3(0.,3.,-55.),vec3(24.,3.,.3));if(wall<best){best=wall;vec3 p=ro+rd*wall;float stripe=step(.95,fract(p.x*.25));color=mix(vec3(.24,.27,.28),vec3(.36,.15,.13),uColorFill)+stripe*.06;}
  for(int i=0;i<${TARGETS.maxCount};i++){
   if(float(i)>=uTargetCount)break;

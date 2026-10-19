@@ -5,6 +5,7 @@ export const TARGETS = {
   board:[.64,1.02,.10], headOffset:[0,.44,.23], headRadius:.18,
   bodyOffset:[0,-.08,.2], body:[.22,.34,.12],
 };
+export const SHOOTING_LINE = { z:1, width:.5 };
 export const CAMERA = [0,1.65,4];
 export function targetCenter(index,time=0,motion=false){
   return [
