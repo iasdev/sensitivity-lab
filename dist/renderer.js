@@ -26,7 +26,7 @@ void main(){
   vec3 center=vec3(x,${scalar(TARGETS.height)},z);
   float head=sphere(ro,rd,center+${vector(TARGETS.headOffset)},${scalar(TARGETS.headRadius)});
   float body=box(ro,rd,center+${vector(TARGETS.bodyOffset)},${vector(TARGETS.body)});
-  float target=min(head,body);if(target<best){best=target;vec3 p=ro+rd*target-center;color=vec3(.24,.28,.23)+max(0.,p.y)*.09;float dotmark=length(vec2(p.x,p.y+.08));color=mix(color,vec3(.96,.72,.36),step(dotmark,.065));}
+  float target=min(head,body);if(target<best){best=target;color=head<body?vec3(1.,.025,.025):vec3(1.);}
 
  }
  for(int j=0;j<8;j++){float z=-float(j)*8.-3.;for(int side=0;side<2;side++){float x=side==0?-10.:10.;float t=box(ro,rd,vec3(x,1.,z),vec3(.10,1.,.10));if(t<best){best=t;color=vec3(.39,.27,.20);}float rail=box(ro,rd,vec3(x,.85,z-4.),vec3(.045,.045,4.));if(rail<best){best=rail;color=vec3(.43,.28,.20);}}}
