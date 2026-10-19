@@ -35,9 +35,11 @@ function update() {
   const hfov=horizontalFov(state.vertical,aspect);
   $('hfov').min=horizontalFov(20,aspect).toFixed(2);$('hfov').max=horizontalFov(120,aspect).toFixed(2);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
-  setText('hfov-value',`${hfov.toFixed(1)}°`);setText('vfov-value',`${state.vertical.toFixed(1)}°`);
-  setText('zoom-value',`${state.zoom.toFixed(2)}×`);setText('coefficient-value',`${state.coefficient.toFixed(1).replace('.0','')}%`);
-  setText('sensitivity-value',`${state.sensitivity.toFixed(1)}° / 100 px`);
+  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity})){
+    const field=$(id+'-value');
+    field.min=$(id).min;field.max=$(id).max;
+    if(document.activeElement!==field)field.value=Number(value.toFixed(6));
+  }
   const activeVertical=state.ads?adsVertical():state.vertical;
   setText('actual-fov',`${horizontalFov(activeVertical,aspect).toFixed(1)}° / ${activeVertical.toFixed(1)}°`);
   setText('sensitivity-ratio',`${multiplier().toFixed(3)}×`);
@@ -56,12 +58,29 @@ function update() {
   $('usa-area').classList.toggle('zero',state.coefficient===0);
   setText('area-label',state.coefficient===0?'USA · CENTRO':clipped?'USA · REFERENCIA FUERA DE VISTA':`USA · ${state.coefficient.toFixed(1).replace('.0','')}%`);
   $('coefficient').disabled=!state.usa;
+  $('coefficient-value').disabled=!state.usa;
   document.querySelectorAll('[data-coefficient]').forEach(button=>button.classList.toggle('active',Math.abs(state.coefficient-(button.dataset.coefficient==='edge'?edge:Number(button.dataset.coefficient)))<.15));
   setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
   dirty=true;
 }
 for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
 $('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),aspect);update();});
+for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]){
+  const field=$(id+'-value');
+  const apply=(commit)=>{
+    const value=field.valueAsNumber;
+    if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,aspect):state[key];return;}
+    const min=Number(field.min),max=Number(field.max);
+    if(!commit&&(value<min||value>max))return;
+    const bounded=Math.max(min,Math.min(max,value));
+    state[key]=id==='hfov'?verticalFov(bounded,aspect):bounded;
+    if(commit)field.value=bounded;
+    update();
+  };
+  field.addEventListener('input',()=>apply(false));
+  field.addEventListener('change',()=>apply(true));
+  field.addEventListener('blur',update);
+}
 for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;update();});
 document.querySelectorAll('[data-coefficient]').forEach(button=>button.addEventListener('click',()=>{state.coefficient=button.dataset.coefficient==='edge'?aspect*100:Number(button.dataset.coefficient);$('coefficient').value=state.coefficient;update();}));
 $('resolution').addEventListener('change',e=>{
@@ -74,7 +93,6 @@ $('apply-resolution').addEventListener('click',()=>{
   if(!$('width').reportValidity()||!$('height').reportValidity())return;
   state.width=Number($('width').value);state.height=Number($('height').value);state.resolution='custom';layout();
 });
-$('reset-view').addEventListener('click',()=>{state.yaw=0;state.pitch=0;dirty=true;});
 $('reset-all').addEventListener('click',()=>{
   Object.assign(state,initial,{yaw:0,pitch:0});
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']])$(id).checked=state[key];
@@ -88,17 +106,19 @@ $('fullscreen').addEventListener('click',async()=>{
   catch{setText('interaction-hint','Pantalla completa no disponible en este navegador.');}
 });
 document.addEventListener('fullscreenchange',()=>{document.body.classList.toggle('immersive',Boolean(document.fullscreenElement));layout();});
-$('capture').addEventListener('click',async()=>{
+async function toggleCapture(){
+  if(!renderer)return;
   try{
     if(document.pointerLockElement===canvas){document.exitPointerLock();return;}
     if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');
     await canvas.requestPointerLock();
   }catch{setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
-});
+}
+$('capture').addEventListener('click',toggleCapture);
 document.addEventListener('pointerlockchange',()=>{
   const locked=document.pointerLockElement===canvas;
-  setText('interaction-hint',locked?'Mueve el ratón · Mantén clic derecho para apuntar':'Pulsa Iniciar para mover la cámara · Mantén clic derecho para apuntar');
-  $('capture').textContent=locked?'Detener · Esc':'Iniciar';
+  setText('interaction-hint',locked?'Mueve el ratón · Mantén clic derecho para apuntar':'Iniciar o Espacio para mover la cámara · Mantén clic derecho para apuntar');
+  $('capture').textContent=locked?'Detener · Espacio':'Iniciar · Espacio';
   $('capture').setAttribute('aria-pressed',String(locked));
   if(!locked)releaseRightAim();
 });
@@ -126,7 +146,10 @@ document.addEventListener('mousedown',e=>{
 document.addEventListener('mouseup',e=>{if(e.button===2)releaseRightAim();});
 document.addEventListener('pointercancel',releaseRightAim);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseRightAim();});
-document.addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();state.ads=!state.ads;update();}});
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space'||e.repeat||e.target.isContentEditable||['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName))return;
+  e.preventDefault();toggleCapture();
+});
 window.addEventListener('blur',releaseRightAim);
 window.addEventListener('resize',layout);
 $('resolution').value=state.resolution;
