@@ -95,9 +95,10 @@ $('capture').addEventListener('click',async()=>{
   try{if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');await canvas.requestPointerLock();}
   catch{setText('interaction-hint','No se pudo capturar el ratón. Puedes arrastrar para mirar.');}
 });
-document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;setText('interaction-hint',locked?'Mueve el ratón · Clic derecho para apuntar':'Arrastra para mirar · Clic derecho para apuntar');$('capture').textContent=locked?'Ratón capturado · Esc':'Probar con ratón ↗';});
+document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;setText('interaction-hint',locked?'Mueve el ratón · Mantén clic derecho para apuntar':'Arrastra para mirar · Mantén clic derecho para apuntar');$('capture').textContent=locked?'Ratón capturado · Esc':'Probar con ratón ↗';if(!locked)releaseRightAim();});
 document.addEventListener('pointerlockerror',()=>setText('interaction-hint','Captura no disponible. Arrastra para mirar.'));
-let dragging=false,lastX=0,lastY=0;
+let dragging=false,lastX=0,lastY=0,rightAimHeld=false;
+function releaseRightAim(){if(!rightAimHeld)return;rightAimHeld=false;state.ads=false;update();}
 function move(dx,dy){const sensitivity=radians(state.sensitivity/100)*(state.ads?multiplier():1);state.yaw+=dx*sensitivity;state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch-dy*sensitivity));dirty=true;}
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0||document.pointerLockElement===canvas)return;dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!dragging||document.pointerLockElement===canvas)return;move(e.clientX-lastX,e.clientY-lastY);lastX=e.clientX;lastY=e.clientY;});
@@ -115,11 +116,15 @@ canvas.addEventListener('wheel',e=>{
 document.addEventListener('mousedown',e=>{
   if(e.button!==2||(e.target!==canvas&&document.pointerLockElement!==canvas))return;
   e.preventDefault();
-  state.ads=!state.ads;
+  rightAimHeld=true;
+  state.ads=true;
   update();
 });
+document.addEventListener('mouseup',e=>{if(e.button===2)releaseRightAim();});
+document.addEventListener('pointercancel',releaseRightAim);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseRightAim();});
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();state.ads=!state.ads;update();}});
-window.addEventListener('blur',()=>{dragging=false;});
+window.addEventListener('blur',()=>{dragging=false;releaseRightAim();});
 window.addEventListener('resize',layout);
 layout();
 function frame(now){
