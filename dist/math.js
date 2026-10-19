@@ -10,3 +10,6 @@ export function usaMultiplier(baseVertical, adsVertical, coefficient) {
   return c < 1e-8 ? ads / base : Math.atan(c * ads) / Math.atan(c * base);
 }
 export const referenceFraction = (coefficient, aspect) => coefficient / 100 / aspect;
+// User reference: sensitivity 7 = 79 cm/360 at 800 DPI. Other values scale linearly.
+export const sensitivityDegreesPerCount = sensitivity => (360 * 2.54 / (79 * 800)) * (sensitivity / 7);
+export const sensitivityCm360 = (sensitivity, dpi) => sensitivity === 0 ? Infinity : (360 / sensitivityDegreesPerCount(sensitivity)) * 2.54 / dpi;

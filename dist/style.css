@@ -14,3 +14,5 @@
 @media(max-height:540px) and (min-width:761px){.topbar{height:50px}#controls{top:55px;bottom:10px}.view-toolbar{bottom:117px}.readouts{bottom:44px;padding:10px 0}.readouts span{margin-bottom:5px}.footnote{display:none}.scene-bottom{bottom:12px}.view-corner{top:60px}#area-label{top:60px}}
 
 .numeric-value{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font:11px 'Space Grotesk',monospace;color:#e5eddd}.numeric-value input{width:78px;min-width:0;padding:5px 4px 5px 7px;background:#15241166;border:1px solid #ffffff30;border-radius:4px;color:var(--text);font:12px 'Space Grotesk',monospace;text-align:right}.numeric-value>span{font-size:10px;color:var(--muted)}.numeric-value input:disabled{opacity:.4}
+
+.sensitivity-distances{display:grid;gap:6px;margin:7px 0 0;font:10px "Space Grotesk",monospace;color:var(--muted)}.sensitivity-distances>span{display:flex;justify-content:space-between}.sensitivity-distances strong{font-weight:500;color:var(--text)}

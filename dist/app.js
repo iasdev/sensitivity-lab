@@ -1,8 +1,8 @@
-import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, radians } from './math.js';
+import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, radians, sensitivityDegreesPerCount, sensitivityCm360 } from './math.js';
 import { createRenderer } from './renderer.js';
 
 const $ = id => document.getElementById(id);
-const initial = { vertical: 70, zoom: 2, coefficient: 133, sensitivity: 10, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: 70, zoom: 2, coefficient: 133, sensitivity: 7, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, yaw:0, pitch:0 };
 const canvas = $('scene');
 let renderer;
@@ -41,6 +41,10 @@ function update() {
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
   }
   const activeVertical=state.ads?adsVertical():state.vertical;
+  for(const dpi of [800,1600,3200]){
+    const cm=sensitivityCm360(state.sensitivity,dpi);
+    setText('distance-'+dpi,Number.isFinite(cm)?`${cm.toFixed(1).replace('.',',')} cm`:'∞ · sin giro');
+  }
   setText('actual-fov',`${horizontalFov(activeVertical,aspect).toFixed(1)}° / ${activeVertical.toFixed(1)}°`);
   setText('sensitivity-ratio',`${multiplier().toFixed(3)}×`);
   const fraction=referenceFraction(state.coefficient,aspect);
@@ -111,7 +115,8 @@ async function toggleCapture(){
   try{
     if(document.pointerLockElement===canvas){document.exitPointerLock();return;}
     if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');
-    await canvas.requestPointerLock();
+    try{await canvas.requestPointerLock({unadjustedMovement:true});}
+    catch(error){if(error.name!=='NotSupportedError')throw error;await canvas.requestPointerLock();}
   }catch{setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
 }
 $('capture').addEventListener('click',toggleCapture);
@@ -125,7 +130,7 @@ document.addEventListener('pointerlockchange',()=>{
 document.addEventListener('pointerlockerror',()=>setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.'));
 let rightAimHeld=false;
 function releaseRightAim(){if(!rightAimHeld)return;rightAimHeld=false;state.ads=false;update();}
-function move(dx,dy){const sensitivity=radians(state.sensitivity/100)*(state.ads?multiplier():1);state.yaw+=dx*sensitivity;state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch-dy*sensitivity));dirty=true;}
+function move(dx,dy){const sensitivity=radians(sensitivityDegreesPerCount(state.sensitivity))*(state.ads?multiplier():1);state.yaw+=dx*sensitivity;state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch-dy*sensitivity));dirty=true;}
 document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas)move(e.movementX,e.movementY);});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{

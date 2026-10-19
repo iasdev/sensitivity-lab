@@ -1,7 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction } from '../dist/math.js';
+import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, sensitivityDegreesPerCount, sensitivityCm360 } from '../dist/math.js';
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
+test('sensitivity 7 reproduces the supplied physical distances',()=>{
+  close(sensitivityCm360(7,800),79);
+  close(sensitivityCm360(7,1600),39.5);
+  close(sensitivityCm360(7,3200),19.75);
+  close(sensitivityDegreesPerCount(7)*(79/2.54*800),360);
+});
+test('sensitivity zero stops rotation and the scale remains proportional through 200',()=>{
+  close(sensitivityDegreesPerCount(0),0);
+  assert.equal(sensitivityCm360(0,800),Infinity);
+  close(sensitivityCm360(14,800),39.5);
+  close(sensitivityCm360(200,800),79*7/200);
+  close(sensitivityDegreesPerCount(7.25)/sensitivityDegreesPerCount(7),7.25/7);
+});
 test('horizontal and vertical FOV describe the same camera across aspect ratios',()=>{
   for(const aspect of [4/3,16/9,3440/1440,.7])for(const vertical of [20,55,70,110])close(verticalFov(horizontalFov(vertical,aspect),aspect),vertical);
 });
