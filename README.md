@@ -26,13 +26,19 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 
 Con el ratón capturado, cada clic izquierdo dispara un rayo desde la retícula. Se usa la cámara y el tiempo del último frame mostrado para coincidir con los blancos móviles. La cantidad y el reloj de animación del último frame también se usan al detectar impactos. La geometría de tablero, cuerpo y cabeza se comparte entre shader y detector; suelo, postes y barandillas bloquean disparos. El tablero completo y la silueta cuentan como acierto; únicamente la esfera visible de la cabeza cuenta como headshot. Cada disparo cuenta una sola vez y la superficie más cercana decide el resultado.
 
-El overlay superior izquierdo muestra aciertos, fallos, precisión (aciertos/disparos) y headshots (headshots/aciertos). Pausar conserva los contadores; el botón ↺ del overlay los reinicia. Se muestra un marcador breve de acierto, fallo o headshot.
+El overlay superior izquierdo muestra aciertos, fallos, precisión (aciertos/disparos) y headshots (headshots/aciertos). Pausar conserva los contadores; el botón ↺ del overlay los reinicia. No se muestran marcadores ni textos en la retícula al disparar. Web Audio sintetiza un tono breve para aciertos y dos tonos agudos para headshots; los fallos no generan audio. El audio se desbloquea con Iniciar o Espacio.
 
 ## Movimiento de dianas
 
 Tres columnas separadas por 5 unidades y filas separadas por 6. Cada diana recorre una elipse con desplazamiento lateral máximo de 1,1 y profundidad máxima de 2. Incluso con fases opuestas, las regiones conservan más separación que la geometría de cada diana, de modo que no pueden colisionar. El máximo de 24 mantiene todas las filas delante del muro. Los solapamientos en perspectiva y las oclusiones entre filas siguen siendo posibles.
 
 El reloj avanza según la velocidad seleccionada, se congela al desactivar movimiento o poner 0×, y no se reinicia al cambiar la velocidad. Restablecer ajustes devuelve 9 dianas, movimiento activo y velocidad 1×.
+
+## Movimiento del jugador y ajustes locales
+
+WASD mueve al jugador en el plano horizontal según su orientación, solo con el ratón capturado. Velocidad de 0 a 12 m/s (4 por defecto), con diagonales normalizadas y límites en los bordes del campo. Soltar la captura, perder foco u ocultar la pestaña limpia las teclas para evitar movimientos atascados. Renderer y detección de impactos usan la misma posición del último frame.
+
+Los ajustes se guardan automáticamente en localStorage, bajo `sensitivity-lab.settings.v1`, con esquema versionado y validación de campos y límites al restaurar. Incluye FOV, resolución, USA, sensibilidad, dianas, velocidades y opciones de movimiento y mira. No se guardan estadísticas, captura, ADS mantenido, posición de cámara ni reloj de animación. Restablecer ajustes guarda los predeterminados. La aplicación sigue funcionando si el navegador bloquea el almacenamiento y lo indica en el panel.
 
 ## Modelo
 

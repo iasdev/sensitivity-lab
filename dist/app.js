@@ -1,18 +1,23 @@
 import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, radians, sensitivityDegreesPerCount, sensitivityCm360 } from './math.js';
 import { createRenderer } from './renderer.js';
-import { traceShot, shotPercentages } from './targets.js';
+import { CAMERA, traceShot, shotPercentages } from './targets.js';
+import { advancePosition } from './movement.js';
+import { loadSettings, saveSettings } from './settings.js';
+import { createHitAudio } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, resolution: '1920x1080', width:1920, height:1080 };
-const state = { ...initial, yaw:0, pitch:0 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, movementSpeed:4, resolution: '1920x1080', width:1920, height:1080 };
+const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
+const movementKeys=new Set();
+const hitAudio=createHitAudio();
 const canvas = $('scene');
 let renderer;
 try { renderer = createRenderer(canvas); } catch(error) { console.error('WebGL:',error); }
 if (!renderer) { $('webgl-error').hidden=false; $('capture').disabled=true; }
 let aspect=16/9, dirty=true, lastSize='', lastTime=0;
 const shots={hits:0,misses:0,headshots:0};
-let lastRenderedPose=null,feedbackTimer,animationTime=0,previousFrameTime=null;
+let lastRenderedPose=null,animationTime=0,previousFrameTime=null;
 const setText = (id, text) => { $(id).textContent=text; };
 function updateShootingStats(){
   const {accuracy,headshotRate}=shotPercentages(shots);
@@ -26,16 +31,10 @@ function shoot(){
   const result=traceShot(lastRenderedPose??{...state,time:performance.now()/1000});
   if(result.hit){shots.hits++;if(result.headshot)shots.headshots++;}else shots.misses++;
   updateShootingStats();
-  const feedback=$('shot-feedback');
-  const kind=result.headshot?'headshot':result.hit?'hit':'miss';
-  feedback.className='';void feedback.offsetWidth;
-  feedback.className=`visible ${kind}`;
-  feedback.textContent=result.headshot?'HEADSHOT':result.hit?'ACIERTO':'FALLO';
-  clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>{feedback.className='';feedback.textContent='';},650);
+  if(result.hit)hitAudio.playHit(result.headshot);
 }
 $('reset-stats').addEventListener('click',()=>{
   Object.assign(shots,{hits:0,misses:0,headshots:0});updateShootingStats();
-  clearTimeout(feedbackTimer);$('shot-feedback').className='';$('shot-feedback').textContent='';
 });
 function adsVertical() { return zoomFov(state.relative ? state.vertical : 55, state.zoom); }
 function multiplier() { return state.usa ? usaMultiplier(state.vertical,adsVertical(),state.coefficient) : 1; }
@@ -63,7 +62,7 @@ function update() {
   $('hfov').min=30;$('hfov').max=160;
   $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
-  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed})){
+  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'movement-speed':state.movementSpeed})){
     const field=$(id+'-value');
     field.min=$(id).min;field.max=$(id).max;
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
@@ -94,11 +93,12 @@ function update() {
     button.setAttribute('aria-pressed',String(active));
   });
   setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
+  setText('storage-status',saveSettings(state)?'Ajustes guardados en este navegador':'No se pueden guardar los ajustes en este navegador');
   dirty=true;
 }
-for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
+for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
 $('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),referenceAspect);update();});
-for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed']]){
+for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']]){
   const field=$(id+'-value');
   const apply=(commit)=>{
     const value=field.valueAsNumber;
@@ -127,11 +127,14 @@ $('apply-resolution').addEventListener('click',()=>{
   if(!$('width').reportValidity()||!$('height').reportValidity())return;
   state.width=Number($('width').value);state.height=Number($('height').value);state.resolution='custom';layout();
 });
-$('reset-all').addEventListener('click',()=>{
-  Object.assign(state,initial,{yaw:0,pitch:0});animationTime=0;
+function syncSettingsControls(){
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']])$(id).checked=state[key];
-  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed']])$(id).value=state[key];
-  $('custom-resolution').hidden=true;layout();
+  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed']])$(id).value=state[key];
+  $('custom-resolution').hidden=state.resolution!=='custom';
+}
+$('reset-all').addEventListener('click',()=>{
+  Object.assign(state,initial,{yaw:0,pitch:0,position:[...CAMERA]});animationTime=0;movementKeys.clear();
+  syncSettingsControls();layout();
 });
 $('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Plegar controles':'Expandir controles');$('collapse').textContent=open?'−':'+';});
 $('help-toggle').addEventListener('click',()=>{const open=$('help').hidden;$('help').hidden=!open;$('help-toggle').setAttribute('aria-expanded',String(open));if(open)$('help').scrollIntoView({block:'nearest',behavior:'smooth'});});
@@ -145,6 +148,7 @@ async function toggleCapture(){
   try{
     if(document.pointerLockElement===canvas){document.exitPointerLock();return;}
     if(!canvas.requestPointerLock)throw new Error('Pointer lock unavailable');
+    hitAudio.unlock();
     try{await canvas.requestPointerLock({unadjustedMovement:true});}
     catch(error){if(error.name!=='NotSupportedError')throw error;await canvas.requestPointerLock();}
   }catch{setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
@@ -152,10 +156,10 @@ async function toggleCapture(){
 $('capture').addEventListener('click',toggleCapture);
 document.addEventListener('pointerlockchange',()=>{
   const locked=document.pointerLockElement===canvas;
-  setText('interaction-hint',locked?'Clic izquierdo: disparar · Mantén clic derecho: apuntar':'Iniciar o Espacio para mover y disparar · Mantén clic derecho para apuntar');
+  setText('interaction-hint',locked?'WASD: moverte · Clic izquierdo: disparar · Clic derecho: apuntar':'Iniciar o Espacio · WASD para moverte · Clic derecho para apuntar');
   $('capture').textContent=locked?'Detener · Espacio':'Iniciar · Espacio';
   $('capture').setAttribute('aria-pressed',String(locked));
-  if(!locked)releaseRightAim();
+  if(!locked){movementKeys.clear();releaseRightAim();}
 });
 document.addEventListener('pointerlockerror',()=>setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.'));
 let rightAimHeld=false;
@@ -181,22 +185,33 @@ document.addEventListener('mousedown',e=>{
 });
 document.addEventListener('mouseup',e=>{if(e.button===2)releaseRightAim();});
 document.addEventListener('pointercancel',releaseRightAim);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseRightAim();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){movementKeys.clear();releaseRightAim();}});
 document.addEventListener('keydown',e=>{
+  if(['KeyW','KeyA','KeyS','KeyD'].includes(e.code)){
+    if(document.pointerLockElement===canvas&&!e.target.isContentEditable&&!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){
+      e.preventDefault();movementKeys.add(e.code);
+    }
+    return;
+  }
   if(e.code!=='Space'||e.repeat||e.target.isContentEditable||['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName))return;
   e.preventDefault();toggleCapture();
 });
-window.addEventListener('blur',releaseRightAim);
+document.addEventListener('keyup',e=>movementKeys.delete(e.code));
+window.addEventListener('blur',()=>{movementKeys.clear();releaseRightAim();});
 window.addEventListener('resize',layout);
-$('resolution').value=state.resolution;
+syncSettingsControls();
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
 layout();
 function frame(now){
   const elapsed=previousFrameTime===null?0:Math.min((now-previousFrameTime)/1000,.1);previousFrameTime=now;
   if(state.motion)animationTime+=elapsed*state.targetSpeed;
+  if(document.pointerLockElement===canvas&&movementKeys.size){
+    const next=advancePosition(state.position,state.yaw,Number(movementKeys.has('KeyW'))-Number(movementKeys.has('KeyS')),Number(movementKeys.has('KeyD'))-Number(movementKeys.has('KeyA')),state.movementSpeed,elapsed);
+    if(next.some((n,i)=>n!==state.position[i])){state.position=next;dirty=true;}
+  }
   if(renderer&&(dirty||(state.motion&&state.targetSpeed>0))&&now-lastTime>=30){
     // Keep the path phase when pausing or changing speed, without teleporting targets.
-    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,time:animationTime,motion:true,targetCount:state.targetCount};
+    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,position:[...state.position],time:animationTime,motion:true,targetCount:state.targetCount};
     renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,...lastRenderedPose});dirty=false;lastTime=now;
   }
   requestAnimationFrame(frame);

@@ -31,27 +31,27 @@ export function intersectSphere(origin,direction,center,radius){
   if(h<0)return Infinity;
   const t=-b-Math.sqrt(h);return t>0?t:Infinity;
 }
-export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count}){
+export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA}){
   const direction=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
   let distance=250,result={hit:false,headshot:false,target:null};
   const consider=(t,target=null,headshot=false)=>{
     if(t<distance){distance=t;result={hit:target!==null,headshot,target};}
   };
-  if(direction[1]<-.001)consider(-CAMERA[1]/direction[1]);
-  consider(intersectBox(CAMERA,direction,[0,3,-55],[24,3,.3]));
+  if(direction[1]<-.001)consider(-position[1]/direction[1]);
+  consider(intersectBox(position,direction,[0,3,-55],[24,3,.3]));
   const count=Math.max(1,Math.min(TARGETS.maxCount,Math.round(targetCount)));
   for(let index=0;index<count;index++){
     const center=targetCenter(index,time,motion);
-    consider(intersectBox(CAMERA,direction,center,TARGETS.board),index);
-    consider(intersectSphere(CAMERA,direction,add(center,TARGETS.headOffset),TARGETS.headRadius),index,true);
-    consider(intersectBox(CAMERA,direction,add(center,TARGETS.bodyOffset),TARGETS.body),index);
-    consider(intersectBox(CAMERA,direction,[center[0],.4,center[2]],[.055,.4,.055]));
+    consider(intersectBox(position,direction,center,TARGETS.board),index);
+    consider(intersectSphere(position,direction,add(center,TARGETS.headOffset),TARGETS.headRadius),index,true);
+    consider(intersectBox(position,direction,add(center,TARGETS.bodyOffset),TARGETS.body),index);
+    consider(intersectBox(position,direction,[center[0],.4,center[2]],[.055,.4,.055]));
   }
   // Rails can hide a target; the nearest visible surface determines the shot.
   for(let j=0;j<8;j++)for(const x of [-10,10]){
     const z=-j*8-3;
-    consider(intersectBox(CAMERA,direction,[x,1,z],[.10,1,.10]));
-    consider(intersectBox(CAMERA,direction,[x,.85,z-4],[.045,.045,4]));
+    consider(intersectBox(position,direction,[x,1,z],[.10,1,.10]));
+    consider(intersectBox(position,direction,[x,.85,z-4],[.045,.045,4]));
   }
   return {...result,distance};
 }

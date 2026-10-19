@@ -7,10 +7,11 @@ void main(){uv=aPosition;gl_Position=vec4(aPosition,0.,1.);}`;
 const fragment = `precision highp float;
 varying vec2 uv;
 uniform float uAspect,uTanFov,uYaw,uPitch,uTime,uMotion,uTargetCount;
+uniform vec3 uCamera;
 float sphere(vec3 ro,vec3 rd,vec3 p,float r){vec3 oc=ro-p;float b=dot(oc,rd);float h=b*b-dot(oc,oc)+r*r;if(h<0.)return 1000.;float t=-b-sqrt(h);return t>0.?t:1000.;}
 float box(vec3 ro,vec3 rd,vec3 p,vec3 size){vec3 inv=1./(rd+vec3(.000001));vec3 a=(p-size-ro)*inv;vec3 b=(p+size-ro)*inv;vec3 lo=min(a,b),hi=max(a,b);float near=max(max(lo.x,lo.y),lo.z);float far=min(min(hi.x,hi.y),hi.z);return far>max(near,0.)?max(near,0.):1000.;}
 void main(){
- vec3 ro=${vector(CAMERA)};
+ vec3 ro=uCamera;
  vec3 rd=normalize(vec3(uv.x*uAspect*uTanFov,uv.y*uTanFov,-1.));
  float cp=cos(uPitch),sp=sin(uPitch);rd=vec3(rd.x,rd.y*cp-rd.z*sp,rd.y*sp+rd.z*cp);
  float cy=cos(uYaw),sy=sin(uYaw);rd=vec3(rd.x*cy-rd.z*sy,rd.y,rd.x*sy+rd.z*cy);
@@ -56,12 +57,14 @@ export function createRenderer(canvas) {
   const attr = gl.getAttribLocation(program, 'aPosition');
   gl.enableVertexAttribArray(attr); gl.vertexAttribPointer(attr, 2, gl.FLOAT, false, 0, 0);
   const uniforms = Object.fromEntries(['uAspect','uTanFov','uYaw','uPitch','uTime','uMotion','uTargetCount'].map(name => [name, gl.getUniformLocation(program,name)]));
+  const cameraUniform=gl.getUniformLocation(program,'uCamera');
   let lost = false;
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); lost=true; document.getElementById('webgl-error').hidden=false; });
   canvas.addEventListener('webglcontextrestored', () => location.reload());
-  return { render({ aspect, vertical, yaw, pitch, time, motion, targetCount=TARGETS.count }) {
+  return { render({ aspect, vertical, yaw, pitch, time, motion, targetCount=TARGETS.count, position=CAMERA }) {
     if (lost) return;
     gl.viewport(0,0,canvas.width,canvas.height);
+    gl.uniform3fv(cameraUniform,position);
     for (const [name,value] of Object.entries({uAspect:aspect,uTanFov:Math.tan(vertical*Math.PI/360),uYaw:yaw,uPitch:pitch,uTime:time,uMotion:motion?1:0,uTargetCount:targetCount})) gl.uniform1f(uniforms[name],value);
     gl.drawArrays(gl.TRIANGLES,0,6);
   }};

@@ -34,6 +34,14 @@ test('count changes which targets can be hit',()=>{
   assert.equal(traceShot({yaw:0,pitch:0,targetCount:1}).hit,false);
   assert.equal(traceShot({yaw:0,pitch:0,targetCount:2}).target,1);
 });
+test('shots originate at the player position after moving',()=>{
+  const shot=traceShot({yaw:0,pitch:0,position:[-5,1.65,4]});
+  assert.equal(shot.hit,true);assert.equal(shot.target,0);
+  const position=[-5,1.65,-5],head=[-5,2.09,-9.77];
+  const [x,y,z]=head.map((n,i)=>n-position[i]);
+  const result=traceShot({position,yaw:Math.atan2(x,-z),pitch:Math.atan2(y,Math.hypot(x,z))});
+  assert.equal(result.headshot,true);assert.equal(result.target,0);
+});
 test('all 24 paths remain separated and inside the shooting range',()=>{
   // Whole-path bounds prove separation even when neighboring paths are at opposite extremes.
   assert.ok(TARGETS.spacing-2*TARGETS.motionAmplitude>2*TARGETS.board[0]);
