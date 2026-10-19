@@ -13,7 +13,8 @@ const setText = (id, text) => { $(id).textContent=text; };
 function adsVertical() { return zoomFov(state.relative ? state.vertical : 55, state.zoom); }
 function multiplier() { return state.usa ? usaMultiplier(state.vertical,adsVertical(),state.coefficient) : 1; }
 
-function layout() {
+function layout(preserveHorizontal = true) {
+  const previousHorizontal=horizontalFov(state.vertical,aspect);
   const viewport=$('viewport');
   const availableWidth=viewport.clientWidth;
   const availableHeight=viewport.clientHeight;
@@ -21,6 +22,7 @@ function layout() {
     aspect=availableWidth/availableHeight;
     state.width=Math.round(availableWidth);state.height=Math.round(availableHeight);
   }else aspect=state.width/state.height;
+  if(preserveHorizontal!==false)state.vertical=verticalFov(previousHorizontal,aspect);
   const width=Math.min(availableWidth,availableHeight*aspect);
   const height=width/aspect;
   const frame=$('render-frame');frame.style.width=`${width}px`;frame.style.height=`${height}px`;
@@ -33,7 +35,8 @@ function layout() {
 }
 function update() {
   const hfov=horizontalFov(state.vertical,aspect);
-  $('hfov').min=horizontalFov(20,aspect).toFixed(2);$('hfov').max=horizontalFov(120,aspect).toFixed(2);
+  $('hfov').min=30;$('hfov').max=160;
+  $('vfov').min=verticalFov(30,aspect);$('vfov').max=verticalFov(160,aspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
   for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity})){
     const field=$(id+'-value');
@@ -101,7 +104,7 @@ $('reset-all').addEventListener('click',()=>{
   Object.assign(state,initial,{yaw:0,pitch:0});
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion']])$(id).checked=state[key];
   for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height']])$(id).value=state[key];
-  $('custom-resolution').hidden=true;layout();
+  $('custom-resolution').hidden=true;layout(false);
 });
 $('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Plegar controles':'Expandir controles');$('collapse').textContent=open?'−':'+';});
 $('help-toggle').addEventListener('click',()=>{const open=$('help').hidden;$('help').hidden=!open;$('help-toggle').setAttribute('aria-expanded',String(open));if(open)$('help').scrollIntoView({block:'nearest',behavior:'smooth'});});
@@ -159,7 +162,7 @@ window.addEventListener('blur',releaseRightAim);
 window.addEventListener('resize',layout);
 $('resolution').value=state.resolution;
 if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
-layout();
+layout(false);
 function frame(now){
   if(renderer&&(dirty||state.motion)&&now-lastTime>=30){renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,yaw:state.yaw,pitch:state.pitch,time:now/1000,motion:state.motion});dirty=false;lastTime=now;}
   requestAnimationFrame(frame);

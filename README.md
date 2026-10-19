@@ -12,7 +12,7 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 
 ## Controles
 
-- FOV horizontal y vertical vinculados a la relación de aspecto. Campos numéricos junto a cada slider para introducir valores precisos, con sincronización bidireccional y límites.
+- FOV horizontal y vertical vinculados a la relación de aspecto. Cambiar resolución o tamaño de pantalla conserva el FOV horizontal elegido y recalcula el vertical. Campos numéricos junto a cada slider para introducir valores precisos, con sincronización bidireccional y límites.
 - Resoluciones predefinidas, dimensiones personalizadas o ajuste al espacio disponible; botón de pantalla completa real.
 - Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación.
 - Ajustes, métricas y controles del ratón integrados en la escena como overlays translúcidos; ajustes plegados inicialmente en móvil.
