@@ -15,9 +15,10 @@ Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior
 - FOV horizontal y vertical vinculados a la relación de aspecto.
 - Resoluciones predefinidas, dimensiones personalizadas o ajuste al espacio disponible; botón de pantalla completa real.
 - Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación.
+- Ajustes, métricas y controles del ratón integrados en la escena como overlays translúcidos; ajustes plegados inicialmente en móvil.
 - Mira con aumento óptico 1–8×; FOV relativo al jugador o referencia fija de 55° verticales.
 - USA activable, coeficiente 0–300%, sensibilidad base y objetivos móviles.
-- Arrastrar para mirar; capturar el ratón para probar libremente; Espacio o botón para alternar ADS; mantener clic derecho sobre la escena para ADS y soltar para volver a la cadera, con o sin captura; Esc libera el ratón.
+- Arrastrar para mirar; capturar el ratón para probar libremente; Espacio para alternar ADS; mantener clic derecho sobre la escena para ADS y soltar para volver a la cadera, con o sin captura; Esc libera el ratón.
 - Rueda sobre la escena: arriba aumenta el zoom y abajo lo reduce en pasos de 0,25×, entre 1× y 8×; sincroniza el slider y funciona con el ratón capturado.
 
 ## Modelo

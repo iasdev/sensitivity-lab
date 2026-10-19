@@ -2,7 +2,7 @@ import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, 
 import { createRenderer } from './renderer.js';
 
 const $ = id => document.getElementById(id);
-const initial = { vertical: 70, zoom: 2, coefficient: 133, sensitivity: 10, usa: true, relative: true, ads: false, motion: false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: 70, zoom: 2, coefficient: 133, sensitivity: 10, usa: true, relative: true, ads: false, motion: false, resolution: 'screen', width:1920, height:1080 };
 const state = { ...initial, yaw:0, pitch:0 };
 const canvas = $('scene');
 let renderer;
@@ -14,18 +14,16 @@ function adsVertical() { return zoomFov(state.relative ? state.vertical : 55, st
 function multiplier() { return state.usa ? usaMultiplier(state.vertical,adsVertical(),state.coefficient) : 1; }
 
 function layout() {
-  const mobile=window.innerWidth<=760;
-  const workspace=$('workspace');
-  const style=getComputedStyle(workspace);
-  const availableWidth=workspace.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
-  const availableHeight=Math.max(200,window.innerHeight-(document.fullscreenElement?115:310));
+  const viewport=$('viewport');
+  const availableWidth=viewport.clientWidth;
+  const availableHeight=viewport.clientHeight;
   if(state.resolution==='screen') {
     aspect=availableWidth/availableHeight;
     state.width=Math.round(availableWidth);state.height=Math.round(availableHeight);
   }else aspect=state.width/state.height;
-  const width=Math.min(availableWidth,mobile?availableWidth:availableHeight*aspect);
+  const width=Math.min(availableWidth,availableHeight*aspect);
   const height=width/aspect;
-  const viewport=$('viewport');viewport.style.width=`${width}px`;viewport.style.height=`${height}px`;
+  const frame=$('render-frame');frame.style.width=`${width}px`;frame.style.height=`${height}px`;
   // Resolution defines the camera aspect. Raster size follows the displayed canvas for a responsive GPU budget.
   const dpr=Math.min(window.devicePixelRatio||1,1.5);
   const renderWidth=Math.max(1,Math.round(width*dpr)),renderHeight=Math.max(1,Math.round(height*dpr));
@@ -59,7 +57,7 @@ function update() {
   setText('area-label',state.coefficient===0?'USA · CENTRO':clipped?'USA · REFERENCIA FUERA DE VISTA':`USA · ${state.coefficient.toFixed(1).replace('.0','')}%`);
   $('coefficient').disabled=!state.usa;
   document.querySelectorAll('[data-coefficient]').forEach(button=>button.classList.toggle('active',Math.abs(state.coefficient-(button.dataset.coefficient==='edge'?edge:Number(button.dataset.coefficient)))<.15));
-  $('ads-button').setAttribute('aria-pressed',String(state.ads));setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
+  setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
   dirty=true;
 }
 for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
@@ -76,7 +74,6 @@ $('apply-resolution').addEventListener('click',()=>{
   if(!$('width').reportValidity()||!$('height').reportValidity())return;
   state.width=Number($('width').value);state.height=Number($('height').value);state.resolution='custom';layout();
 });
-$('ads-button').addEventListener('click',()=>{state.ads=!state.ads;update();});
 $('reset-view').addEventListener('click',()=>{state.yaw=0;state.pitch=0;dirty=true;});
 $('reset-all').addEventListener('click',()=>{
   Object.assign(state,initial,{yaw:0,pitch:0});
@@ -126,6 +123,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseRigh
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&!e.repeat&&!['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();state.ads=!state.ads;update();}});
 window.addEventListener('blur',()=>{dragging=false;releaseRightAim();});
 window.addEventListener('resize',layout);
+$('resolution').value=state.resolution;
+if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
 layout();
 function frame(now){
   if(renderer&&(dirty||state.motion)&&now-lastTime>=30){renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,yaw:state.yaw,pitch:state.pitch,time:now/1000,motion:state.motion});dirty=false;lastTime=now;}
