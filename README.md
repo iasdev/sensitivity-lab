@@ -10,6 +10,14 @@ python3 -m http.server 8080 --directory dist --bind 127.0.0.1
 
 Open http://localhost:8080. Run `npm test` with Node 18 or later to check the geometry, sensitivity model, movement, settings validation, and timed trials.
 
+## GitHub Pages
+
+The workflow in `.github/workflows/pages.yml` tests and publishes `dist/` whenever `master` changes. It can also be started manually from the Actions tab.
+
+In the repository's **Settings → Pages**, select **GitHub Actions** as the publishing source. Once enabled, run **Deploy to GitHub Pages** from the Actions tab. The expected public address is https://iasdev.github.io/sensitivity-web/.
+
+GitHub Pages requires an eligible plan for private repositories. On GitHub Free, the repository must be public. Enabling a public website does not require making an eligible private repository public.
+
 ## Controls
 
 - Horizontal and vertical FOV use a fixed 16:9 reference. Both settings stay unchanged when the resolution changes. The camera preserves vertical FOV and expands the actual horizontal FOV on wider displays without stretching the image. Numeric fields and sliders stay synchronized.
