@@ -1,64 +1,78 @@
 # Sensitivity Lab
 
-Simulador estático en español de campo de visión y Uniform Soldier Aiming. WebGL 1 renderiza un campo de tiro tridimensional mediante rayos y geometría analítica en un fragment shader; no necesita bibliotecas, backend ni claves.
+An English-language, static field-of-view and Uniform Soldier Aiming simulator. WebGL 1 renders a 3D shooting range with analytic ray tracing in a fragment shader. No libraries, backend, or API keys are required.
 
-## Ejecutar
+## Run locally
 
 ```sh
 python3 -m http.server 8080 --directory dist --bind 127.0.0.1
 ```
 
-Abre http://localhost:8080. Para verificar la geometría con Node 18 o posterior: `npm test`.
+Open http://localhost:8080. Run `npm test` with Node 18 or later to check the geometry, sensitivity model, movement, settings validation, and timed trials.
 
-## Controles
+## Controls
 
-- FOV horizontal y vertical vinculados a una referencia fija 16:9. Ambos ajustes permanecen iguales al cambiar resolución; la cámara conserva el FOV vertical y amplía el FOV horizontal real según el aspecto, sin estirar la imagen. La métrica FOV se etiqueta como referencia 16:9. Campos numéricos junto a cada slider para introducir valores precisos, con sincronización bidireccional y límites.
-- Resoluciones predefinidas, dimensiones personalizadas o ajuste al espacio disponible; botón de pantalla completa real.
-- Fondo rojo y banda verde de referencia USA, retícula central y marcadores del recorrido de igualación. El toggle «Solo bordes» elimina el relleno verde y usa una paleta neutra para la escena, conservando los contornos rojo y verde; se guarda junto con los ajustes.
-- Ajustes, métricas y controles del ratón integrados en la escena como overlays translúcidos; ajustes plegados inicialmente en móvil.
-- Mira con aumento óptico 1–8×; FOV relativo al jugador o referencia fija de 55° verticales.
-- USA activable, coeficiente 0–300%, sensibilidad base y dianas móviles por defecto.
-- Cantidad de dianas de 1 a 24 y velocidad de 0× a 4×, con sliders e inputs. Las dianas avanzan, retroceden y se desplazan lateralmente en regiones separadas. Pausar o ajustar velocidad conserva la fase del movimiento.
-- Iniciar/Detener activa o desactiva el control del ratón; arrastrar con el botón izquierdo no mueve la cámara; Espacio para iniciar/detener la captura; mantener clic derecho sobre la escena para ADS y soltar para volver a la cadera, con o sin captura; Esc libera el ratón.
-- Rueda sobre la escena: arriba aumenta el zoom y abajo lo reduce en pasos de 0,25×, entre 1× y 8×; sincroniza el slider y funciona con el ratón capturado.
+- Horizontal and vertical FOV use a fixed 16:9 reference. Both settings stay unchanged when the resolution changes. The camera preserves vertical FOV and expands the actual horizontal FOV on wider displays without stretching the image. Numeric fields and sliders stay synchronized.
+- Choose a preset resolution, custom dimensions, or Fit available space. The Fullscreen button uses the browser's fullscreen mode.
+- Red represents the field of view, and green represents the USA matching distance. Outlines only removes the green fill and uses a neutral scene palette while retaining red and green borders. This preference is saved.
+- Settings, metrics, and mouse controls are translucent scene overlays. Settings start collapsed on mobile.
+- Optical zoom ranges from 1× to 8×. ADS FOV can be relative to the player's FOV or a fixed 55° vertical reference.
+- USA can be enabled or disabled, with a coefficient from 0% to 300% and presets for 0, 4:3, 16:9, and 21:9.
+- Sensitivity accepts integers from 0 to 200, with 7 as the default.
+- Choose 1–24 targets and a target speed from 0× to 4×. Targets move by default on separate sideways and forward/backward paths. Changing speed or pausing preserves their movement phase.
+- Start/Stop or Space toggles mouse capture. Dragging with the left button does not move the camera. Hold right-click to aim and release it to return to hip fire, with or without capture. Esc releases the mouse.
+- Scroll over the scene to change zoom in 0.25× steps. This also works while the mouse is captured.
+- While captured, left-click to shoot and use WASD to move. Player speed ranges from 0 to 12 m/s, with 4 as the default.
 
-## Disparos
+## Shooting and statistics
 
-Con el ratón capturado, cada clic izquierdo dispara un rayo desde la retícula. Se usa la cámara y el tiempo del último frame mostrado para coincidir con los blancos móviles. La cantidad y el reloj de animación del último frame también se usan al detectar impactos. La geometría de tablero, cuerpo y cabeza se comparte entre shader y detector; suelo, postes y barandillas bloquean disparos. El tablero completo y la silueta cuentan como acierto; únicamente la esfera visible de la cabeza cuenta como headshot. Cada disparo cuenta una sola vez y la superficie más cercana decide el resultado.
+Each left-click while captured fires a ray from the crosshair. Hit detection uses the camera position, orientation, target count, and animation time of the last displayed frame. Target board, body, and head geometry is shared by the shader and hit detector. Ground, posts, and rails block shots. The nearest surface determines the result, and each shot counts once.
 
-El overlay superior izquierdo muestra aciertos, fallos, precisión (aciertos/disparos) y headshots (headshots/aciertos). Pausar conserva los contadores; el botón ↺ del overlay los reinicia. No se muestran marcadores ni textos en la retícula al disparar. Web Audio sintetiza un tono breve para aciertos y dos tonos agudos para headshots; los fallos no generan audio. El audio se desbloquea con Iniciar o Espacio.
+The entire target board and silhouette count as a hit. Only the visible head sphere counts as a headshot. The top-left overlay shows hits, misses, accuracy (hits/shots), and headshot percentage (headshots/hits). Releasing capture preserves the counters. The overlay's reset button clears them outside an active trial.
 
-## Movimiento de dianas
+No hit markers or shot messages appear on the crosshair. Web Audio synthesizes one short tone for a hit and two higher tones for a headshot. Misses are silent. Audio is unlocked by starting mouse capture.
 
-Tres columnas separadas por 5 unidades y filas separadas por 6. Cada diana recorre una elipse con desplazamiento lateral máximo de 1,1 y profundidad máxima de 2. Incluso con fases opuestas, las regiones conservan más separación que la geometría de cada diana, de modo que no pueden colisionar. El máximo de 24 mantiene todas las filas delante del muro. Los solapamientos en perspectiva y las oclusiones entre filas siguen siendo posibles.
+## Target movement
 
-El reloj avanza según la velocidad seleccionada, se congela al desactivar movimiento o poner 0×, y no se reinicia al cambiar la velocidad. Restablecer ajustes devuelve 9 dianas, movimiento activo y velocidad 1×.
+Targets occupy three columns separated by 5 units and rows separated by 6 units. Each follows an ellipse with a maximum sideways displacement of 1.1 and a maximum depth displacement of 2. Even at opposite phases, neighboring paths remain farther apart than the target geometry, preventing collisions. The maximum of 24 targets keeps all rows in front of the back wall. Perspective overlap and occlusion between rows can still occur.
 
-## Movimiento del jugador y ajustes locales
+The animation clock advances at the selected speed. Disabling movement or selecting 0× freezes it without resetting the phase. Reset settings restores 9 targets, movement enabled, and speed 1×.
 
-WASD mueve al jugador en el plano horizontal según su orientación, solo con el ratón capturado. Velocidad de 0 a 12 m/s (4 por defecto), con diagonales normalizadas y límites en los bordes del campo. Soltar la captura, perder foco u ocultar la pestaña limpia las teclas para evitar movimientos atascados. Renderer y detección de impactos usan la misma posición del último frame.
+## Player movement and saved settings
 
-Los ajustes se guardan automáticamente en localStorage, bajo `sensitivity-lab.settings.v1`, con esquema versionado y validación de campos y límites al restaurar. Incluye FOV, resolución, USA, sensibilidad, dianas, velocidades y opciones de movimiento y mira. No se guardan estadísticas, captura, ADS mantenido, posición de cámara ni reloj de animación. Restablecer ajustes guarda los predeterminados. La aplicación sigue funcionando si el navegador bloquea el almacenamiento y lo indica en el panel.
+WASD moves the player horizontally relative to camera yaw while the mouse is captured. Diagonal movement is normalized. Movement is bounded by the range edges. Releasing capture, losing focus, or hiding the tab clears held movement keys to prevent stuck movement. Rendering and hit detection use the same camera position.
 
-## Prueba cronometrada
+Settings are saved automatically in localStorage under `sensitivity-lab.settings.v1`, using a versioned schema with field and range validation. Saved preferences include FOV, resolution, USA, sensitivity, target count, movement options, speeds, outlines, and trial duration. Statistics, trial results, mouse capture, held ADS, camera position, and animation time are not saved. Reset settings saves the defaults. The application still works when browser storage is blocked and reports this in the settings panel.
 
-Duración configurable de 0 a 300 segundos (60 por defecto); 0 representa tiempo infinito. Iniciar prueba solicita captura y solo entonces reinicia las estadísticas e inicia el reloj. La puntuación es max(0, 100 × aciertos + 50 × headshots − 25 × fallos); un headshot ya está incluido en los aciertos y suma 150 puntos en total.
+## Timed trials
 
-El reloj usa tiempo monotónico real y sigue avanzando al liberar el ratón o cambiar de pestaña. Se comprueba el vencimiento antes de cada disparo: al cumplirse el límite se congela el resultado, se libera la captura y no se permiten más disparos hasta iniciar otra prueba o volver a práctica libre. El botón Finalizar prueba cierra anticipadamente, incluido el modo infinito. Mientras corre una prueba no se pueden reiniciar los contadores ni cambiar su duración. La duración se guarda con los ajustes; ni la sesión, ni la puntuación ni las estadísticas se persisten.
+Trial duration ranges from 0 to 300 seconds, with 60 as the default. Zero means unlimited time. Start trial captures the mouse, then resets the statistics and starts the clock.
 
-## Modelo
+Score = max(0, 100 × hits + 50 × headshots − 25 × misses). Headshots are included in hits, so a headshot earns 150 points in total.
 
-Para relación de aspecto A, H = 2 atan(A tan(V/2)). El aumento Z usa V_ads = 2 atan(tan(V_ref/2)/Z). Con FOV relativo desactivado V_ref = 55°; activado V_ref = V_base.
+The timer uses real monotonic time and keeps running when mouse capture is released or the tab is hidden. The deadline is checked before every shot. At expiry, the result freezes, mouse capture is released, and further shots do not count until a new trial starts or the player returns to free practice. Finish trial ends a run early, including unlimited runs. Counter resets and duration changes are disabled during an active trial. Only the configured duration is persisted; active sessions, scores, and statistics are not saved.
 
-Para coeficiente c = porcentaje/100, el factor angular ADS/base es atan(c tan(V_ads/2)) / atan(c tan(V_base/2)). Para c=0 se usa el límite tan(V_ads/2)/tan(V_base/2).
+## Mathematical model
 
-La referencia horizontal ocupa c/A del semiancho desde el centro; la banda completa ocupa esa misma fracción del ancho. Si supera el borde se recorta visualmente y se indica. Para c=0 solo se dibuja la línea central. La banda representa un recorrido de referencia, no una zona de aplicación: la sensibilidad afecta a toda la cámara. No se puede igualar todo el espacio de pantalla simultáneamente para FOV distintos.
+For aspect ratio A, H = 2 atan(A tan(V/2)). Optical zoom Z uses V_ads = 2 atan(tan(V_ref/2)/Z). With relative ADS FOV disabled, V_ref = 55°; otherwise V_ref = V_base.
 
-USA desactivado usa factor 1, conservación del giro angular. No emula el modo legacy de Battlefield ni sus multiplicadores particulares. La sensibilidad va de 0 a 200 y su valor predeterminado es 7. La captura del usuario se toma como referencia: a 7, 79 cm/360 a 800 DPI, 39,5 cm a 1600 DPI y 19,75 cm (19,8 redondeados) a 3200 DPI. Se usa una escala afín: grados/conteo = (360 × 2,54 / (79 × 800)) × ((sensibilidad + 4/3) / (7 + 4/3)). Es compatible con el modelo medido ≈ 0,00173623 × sensibilidad + 0,00231498 grados/conteo publicado por [SensitivityMatch](https://sensitivitymatch.com/mouse-sensitivity-converter/cs2-to-battlefield-6/), normalizado a la captura de sensibilidad 7. A sensibilidad 100 reproduce 6,5 / 3,2 / 1,6 cm a 800 / 1600 / 3200 DPI; los cálculos mantienen precisión completa antes de redondear. A 0 queda una sensibilidad mínima (aprox. 493,8 cm/360 a 800 DPI). No es una fórmula oficial verificada y las capturas solo validan dos puntos de la escala. Se solicita Pointer Lock sin aceleración cuando está disponible; el escalado de entrada del navegador/SO puede alterar las distancias físicas. La tabla muestra sensibilidad base; al apuntar se aplica el multiplicador USA. La resolución seleccionada determina aspecto y encuadre, mientras el raster WebGL se adapta al tamaño mostrado con un máximo de 1.5× DPR para limitar consumo.
+For coefficient c = percentage/100, the ADS/base angular sensitivity ratio is atan(c tan(V_ads/2)) / atan(c tan(V_base/2)). For c = 0, use the limit tan(V_ads/2)/tan(V_base/2).
 
-## Referencias
+The horizontal matching distance is c/A of the half-width from the center. The full green band occupies the same fraction of the full image width. References beyond the edge are clipped visually and labeled. For c = 0, only the center line is drawn. The band represents a matching distance, not an activation area: sensitivity affects the entire camera. Different FOVs cannot match every screen-space distance simultaneously.
+
+With USA disabled, the angular sensitivity multiplier is 1. This does not emulate any particular game's legacy aiming mode or per-scope multipliers.
+
+The sensitivity model is calibrated to the user's screenshots: sensitivity 7 gives 79 cm/360° at 800 DPI, 39.5 cm at 1600 DPI, and 19.75 cm (19.8 rounded) at 3200 DPI. The affine model is:
+
+`degrees/count = (360 × 2.54 / (79 × 800)) × ((sensitivity + 4/3) / (7 + 4/3))`
+
+This agrees with the measured model of approximately `0.00173623 × sensitivity + 0.00231498` degrees/count published by [SensitivityMatch](https://sensitivitymatch.com/mouse-sensitivity-converter/cs2-to-battlefield-6/), normalized to the screenshot at sensitivity 7. At sensitivity 100, it reproduces 6.5 / 3.2 / 1.6 cm at 800 / 1600 / 3200 DPI. Calculations retain full precision before display rounding. Sensitivity 0 retains a minimum speed of approximately 493.8 cm/360° at 800 DPI. This is not an officially verified formula; the supplied screenshots validate two points on the scale.
+
+Raw Pointer Lock input is requested when available. Browser or operating system input scaling may affect physical distances. The distance table shows base sensitivity; ADS applies the USA multiplier. The selected resolution defines aspect ratio and framing, while WebGL raster size follows the displayed canvas with a maximum of 1.5× device pixel ratio to limit GPU load.
+
+## References
 
 - [DICE: Uniform Soldier Aiming](https://forums.ea.com/blog/battlefield-game-info-hub-en/dev-notes---uniform-soldier-aiming/7013669)
-- [EA: ajustes de ratón y teclado](https://www.frostbite.com/able/resources/battlefield-2042/pc/mouse-and-keyboard)
-- [Unity: geometría de la proyección](https://docs.unity.com/en-us/engine/6000.5/manual/cameras/camera-view/frustum-size-at-distance)
+- [EA: mouse and keyboard settings](https://www.frostbite.com/able/resources/battlefield-2042/pc/mouse-and-keyboard)
+- [Unity: camera projection geometry](https://docs.unity.com/en-us/engine/6000.5/manual/cameras/camera-view/frustum-size-at-distance)
 - [MDN: Pointer Lock](https://developer.mozilla.org/en-US/docs/Web/API/Pointer_Lock_API)

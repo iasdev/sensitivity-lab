@@ -25,8 +25,8 @@ const setText = (id, text) => { $(id).textContent=text; };
 function updateShootingStats(){
   const {accuracy,headshotRate}=shotPercentages(shots);
   setText('shot-hits',shots.hits);setText('shot-misses',shots.misses);
-  setText('shot-accuracy',`${accuracy.toFixed(1).replace('.',',')}%`);
-  setText('shot-headshots',`${headshotRate.toFixed(1).replace('.',',')}%`);
+  setText('shot-accuracy',`${accuracy.toFixed(1)}%`);
+  setText('shot-headshots',`${headshotRate.toFixed(1)}%`);
   renderTraining();
 }
 function renderTraining(){
@@ -34,9 +34,9 @@ function renderTraining(){
   const running=run.status==='running',finished=run.status==='finished';
   const seconds=running?(run.remainingSeconds===null?Math.floor(run.elapsedSeconds):Math.ceil(run.remainingSeconds)):finished?Math.floor(run.elapsedSeconds):state.sessionDuration;
   setText('session-clock',!running&&!finished&&seconds===0?'∞':formatTime(seconds));
-  setText('session-status',running?(run.remainingSeconds===null?'SIN LÍMITE · TRANSCURRIDO':'TIEMPO RESTANTE'):finished?'PRUEBA FINALIZADA':'PRUEBA PREPARADA');
-  setText('session-score',run.status==='idle'?'—':calculateScore(shots).toLocaleString('es-ES'));
-  setText('session-start',pendingTrainingStart?'Iniciando…':running?'Finalizar prueba':finished?'Nueva prueba':'Iniciar prueba');
+  setText('session-status',running?(run.remainingSeconds===null?'UNLIMITED · ELAPSED':'TIME LEFT'):finished?'TRIAL COMPLETE':'TRIAL READY');
+  setText('session-score',run.status==='idle'?'—':calculateScore(shots).toLocaleString('en-US'));
+  setText('session-start',pendingTrainingStart?'Starting…':running?'Finish trial':finished?'New trial':'Start trial');
   $('session-start').disabled=!renderer||pendingTrainingStart;
   $('session-free').hidden=!finished;
   $('reset-stats').disabled=running||pendingTrainingStart;
@@ -119,21 +119,21 @@ function update() {
   const activeVertical=state.ads?adsVertical():state.vertical;
   for(const dpi of [800,1600,3200]){
     const cm=sensitivityCm360(state.sensitivity,dpi);
-    setText('distance-'+dpi,Number.isFinite(cm)?`${cm.toFixed(1).replace('.',',')} cm`:'∞ · sin giro');
+    setText('distance-'+dpi,Number.isFinite(cm)?`${cm.toFixed(1)} cm`:'∞ · no rotation');
   }
   setText('actual-fov',`${horizontalFov(activeVertical,referenceAspect).toFixed(1)}° / ${activeVertical.toFixed(1)}°`);
   setText('sensitivity-ratio',`${multiplier().toFixed(3)}×`);
   const fraction=referenceFraction(state.coefficient,aspect);
-  setText('monitor-distance',state.usa?`${(fraction*100).toFixed(1)}% del semiancho`:'Desactivado');
+  setText('monitor-distance',state.usa?`${(fraction*100).toFixed(1)}% of half-width`:'Disabled');
   setText('resolution-label',`${state.width} × ${state.height} / ${(aspect).toFixed(2)}:1`);
-  setText('aspect-label',`Relación ${aspect.toFixed(3)}:1 · Vista escalada para encajar`);
+  setText('aspect-label',`Aspect ratio ${aspect.toFixed(3)}:1 · Scaled to fit`);
   const clipped=fraction>1;
-  setText('usa-description',!state.usa?'Sin compensación: mismo giro angular con y sin mira.':state.coefficient===0?'Referencia en el centro: conserva la respuesta para correcciones muy pequeñas.':clipped?'La referencia queda fuera de la imagen. El área verde se recorta al campo visible.':`Iguala el recorrido del centro al ${(fraction*100).toFixed(1)}% del semiancho. No implica igualar todos los puntos.`);
+  setText('usa-description',!state.usa?'No compensation: identical angular sensitivity in hip fire and ADS.':state.coefficient===0?'Center reference: matches the response for very small corrections.':clipped?'The reference is outside the image. The green area is clipped to the visible field.':`Matches the distance from the center to ${(fraction*100).toFixed(1)}% of half-width. Other distances do not match exactly.`);
   $('usa-area').hidden=!state.usa;$('reference-points').hidden=!state.usa||clipped||state.coefficient===0;
   $('usa-area').style.width=`${Math.min(fraction,1)*100}%`;
   $('reference-points').style.width=`${fraction*100}%`;
   $('usa-area').classList.toggle('zero',state.coefficient===0);
-  setText('area-label',state.coefficient===0?'USA · CENTRO':clipped?'USA · REFERENCIA FUERA DE VISTA':`USA · ${state.coefficient.toFixed(1).replace('.0','')}%`);
+  setText('area-label',state.coefficient===0?'USA · CENTER':clipped?'USA · REFERENCE OUTSIDE VIEW':`USA · ${state.coefficient.toFixed(1).replace('.0','')}%`);
   $('coefficient').disabled=!state.usa;
   $('coefficient-value').disabled=!state.usa;
   document.querySelectorAll('[data-coefficient]').forEach(button=>{
@@ -141,8 +141,8 @@ function update() {
     button.classList.toggle('active',active);
     button.setAttribute('aria-pressed',String(active));
   });
-  setText('view-state',state.ads?'APUNTANDO / ADS':'DESDE LA CADERA');
-  setText('storage-status',saveSettings(state)?'Ajustes guardados en este navegador':'No se pueden guardar los ajustes en este navegador');
+  setText('view-state',state.ads?'AIMING / ADS':'HIP FIRE');
+  setText('storage-status',saveSettings(state)?'Settings saved in this browser':'Settings cannot be saved in this browser');
   renderTraining();
   dirty=true;
 }
@@ -187,11 +187,11 @@ $('reset-all').addEventListener('click',()=>{
   Object.assign(state,initial,{yaw:0,pitch:0,position:[...CAMERA]});animationTime=0;movementKeys.clear();
   syncSettingsControls();layout();
 });
-$('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Plegar controles':'Expandir controles');$('collapse').textContent=open?'−':'+';});
+$('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Collapse controls':'Expand controls');$('collapse').textContent=open?'−':'+';});
 $('help-toggle').addEventListener('click',()=>{const open=$('help').hidden;$('help').hidden=!open;$('help-toggle').setAttribute('aria-expanded',String(open));if(open)$('help').scrollIntoView({block:'nearest',behavior:'smooth'});});
 $('fullscreen').addEventListener('click',async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
-  catch{setText('interaction-hint','Pantalla completa no disponible en este navegador.');}
+  catch{setText('interaction-hint','Fullscreen is unavailable in this browser.');}
 });
 document.addEventListener('fullscreenchange',()=>{document.body.classList.toggle('immersive',Boolean(document.fullscreenElement));layout();});
 async function toggleCapture(){
@@ -204,19 +204,19 @@ async function toggleCapture(){
     try{await canvas.requestPointerLock({unadjustedMovement:true});}
     catch(error){if(error.name!=='NotSupportedError')throw error;await canvas.requestPointerLock();}
     if(pendingTrainingStart&&document.pointerLockElement===canvas)beginTraining();
-  }catch{pendingTrainingStart=false;renderTraining();setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');}
+  }catch{pendingTrainingStart=false;renderTraining();setText('interaction-hint','Could not capture the mouse. Please try again.');}
   finally{captureRequestActive=false;}
 }
 $('capture').addEventListener('click',toggleCapture);
 document.addEventListener('pointerlockchange',()=>{
   const locked=document.pointerLockElement===canvas;
-  setText('interaction-hint',locked?'WASD: moverte · Clic izquierdo: disparar · Clic derecho: apuntar':'Iniciar o Espacio · WASD para moverte · Clic derecho para apuntar');
-  $('capture').textContent=locked?'Detener · Espacio':'Iniciar · Espacio';
+  setText('interaction-hint',locked?'WASD: move · Left-click: shoot · Right-click: aim':'Start or Space · WASD to move · Right-click to aim');
+  $('capture').textContent=locked?'Stop · Space':'Start · Space';
   $('capture').setAttribute('aria-pressed',String(locked));
   if(locked&&pendingTrainingStart)beginTraining();
   if(!locked){movementKeys.clear();releaseRightAim();}
 });
-document.addEventListener('pointerlockerror',()=>{if(captureRequestActive)return;pendingTrainingStart=false;renderTraining();setText('interaction-hint','No se pudo iniciar el control del ratón. Inténtalo de nuevo.');});
+document.addEventListener('pointerlockerror',()=>{if(captureRequestActive)return;pendingTrainingStart=false;renderTraining();setText('interaction-hint','Could not capture the mouse. Please try again.');});
 let rightAimHeld=false;
 function releaseRightAim(){if(!rightAimHeld)return;rightAimHeld=false;state.ads=false;update();}
 function move(dx,dy){const sensitivity=radians(sensitivityDegreesPerCount(state.sensitivity))*(state.ads?multiplier():1);state.yaw+=dx*sensitivity;state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch-dy*sensitivity));dirty=true;}
@@ -255,7 +255,7 @@ document.addEventListener('keyup',e=>movementKeys.delete(e.code));
 window.addEventListener('blur',()=>{movementKeys.clear();releaseRightAim();});
 window.addEventListener('resize',layout);
 syncSettingsControls();
-if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expandir controles');$('collapse').textContent='+';}
+if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expand controls');$('collapse').textContent='+';}
 layout();
 function frame(now){
   checkTrainingDeadline(now);
