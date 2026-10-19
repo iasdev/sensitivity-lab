@@ -16,6 +16,7 @@
       <canvas id="scene" aria-label="3D shooting range. Press Start to control the camera."></canvas>
       <div id="usa-area"><span id="area-label">USA REFERENCE</span></div>
       <div id="reference-points"><i></i><i></i></div>
+      <div id="hitmarker" aria-hidden="true" hidden><i></i><i></i><i></i><i></i></div>
       <div class="crosshair" aria-hidden="true"><i></i><i></i><b></b></div>
       <div class="view-corner right" id="resolution-label"></div>
       <div id="webgl-error" hidden>WebGL is unavailable. Enable hardware acceleration or try another browser. Controls and calculations are still available.</div>
@@ -35,6 +36,10 @@
         <div class="training-session" aria-label="Timed trial">
           <div class="session-clock-row"><span id="session-status">TRIAL READY</span><strong id="session-clock">1:00</strong></div>
           <div class="session-score-row"><span>SCORE</span><strong id="session-score">—</strong></div>
+        <section class="trial-settings" aria-label="Trial duration">
+          <div class="range-label"><label for="session-duration">Duration</label><span class="numeric-value"><input id="session-duration-value" type="number" min="0" max="300" step="1" inputmode="numeric" aria-label="Trial duration in seconds"><span>s</span></span></div><input id="session-duration" type="range" min="0" max="300" step="1" value="60">
+          <p class="micro">0 = unlimited · up to 5 min. Time keeps running outside mouse capture.</p>
+        </section>
           <button id="session-start" class="primary">Start trial</button>
           <button id="session-free" hidden>Return to free practice</button>
           <p class="session-formula">+100 hit · +50 extra HS · −25 miss</p>
@@ -43,11 +48,11 @@
       </section>
       <div class="scene-bottom"><span id="interaction-hint">Start or Space · WASD to move · Right-click to aim</span><span>ESC to release the mouse</span></div>
     <div class="view-toolbar"><div class="legend"><span><i class="red"></i>Field of view</span><span><i class="green"></i>USA reference</span></div><div class="view-buttons"><button id="capture" class="primary" aria-pressed="false">Start · Space</button></div></div>
-    <section class="readouts" aria-label="Simulation metrics"><div><span>FOV REF. 16:9 · H / V</span><strong id="actual-fov"></strong></div><div><span>ADS / BASE SENSITIVITY</span><strong id="sensitivity-ratio"></strong></div><div><span>HORIZONTAL REFERENCE</span><strong id="monitor-distance"></strong></div></section>
     <p class="footnote"><span>↳</span> Green marks the matching distance from the center. USA adjusts sensitivity across the entire view; it has no activation zone.</p>
 
-    <aside id="controls" aria-label="Simulation controls">
-      <div class="panel-header"><div><span class="eyebrow">LIVE SETTINGS</span><h2>Perspective & aim</h2></div><button id="collapse" class="icon-button" aria-expanded="true" aria-label="Collapse controls">−</button></div>
+    <div id="settings-panels">
+    <aside id="controls" class="settings-panel" aria-label="Perspective and aim settings">
+      <div class="panel-header"><div><span class="eyebrow">LIVE SETTINGS</span><h2>Perspective & aim</h2></div><button id="collapse" class="icon-button" aria-controls="panel-body" aria-expanded="true" aria-label="Collapse controls">−</button></div>
       <div id="panel-body">
         <section class="control-section"><div class="section-title"><span>01</span><h3>Field of view</h3><span class="linked">↔ ref. 16:9</span></div>
           <div class="range-label"><label for="hfov">Horizontal FOV</label><span class="numeric-value"><input id="hfov-value" type="number" min="30" max="160" step="0.01" aria-label="Horizontal FOV: exact value"><span>°</span></span></div><input id="hfov" type="range" min="30" max="160" step="0.1">
@@ -66,25 +71,27 @@
           <label class="switch-row" for="outlines-only"><span>Outlines only<small>No red or green fill over the scene</small></span><input id="outlines-only" type="checkbox" role="switch"></label>
         </section>
         <section class="control-section last"><div class="range-label"><label for="sensitivity">Base sensitivity</label><span class="numeric-value"><input id="sensitivity-value" type="number" min="0" max="200" step="1" inputmode="numeric" aria-label="Base sensitivity: exact value"><span>/ 200</span></span></div><input id="sensitivity" type="range" min="0" max="200" step="1" value="7"><div class="sensitivity-distances" aria-label="Base distance for a 360-degree turn"><span>800 DPI <strong id="distance-800"></strong></span><span>1600 DPI <strong id="distance-1600"></strong></span><span>3200 DPI <strong id="distance-3200"></strong></span></div><p class="micro">Base cm/360° · calibrated to screenshots at 7 and 100</p></section>
-        <section class="control-section"><div class="section-title"><span>04</span><h3>Targets</h3></div>
+        <p class="micro storage-status" id="storage-status" role="status"></p>
+        <div class="panel-footer"><button id="reset-all">Reset settings</button><button id="help-toggle" aria-expanded="false">How it works ↗</button></div>
+        <div id="help" hidden><p>The H/V settings use a fixed 16:9 reference. Neither changes when you select a different resolution. The camera keeps the vertical FOV and expands the actual horizontal FOV on ultrawide displays without stretching the image. Optical zoom divides tan(FOV/2), not the angle in degrees.</p><p>The coefficient is measured relative to half the image height: 100% equals that distance from the center. The horizontal edge corresponds to 100 × width/height. 0% matches infinitesimal movements around the crosshair.</p><p>With USA disabled, the angular sensitivity multiplier is 1 (constant cm/360°). This is a geometric comparison, not an exact recreation of a game's legacy aiming mode. Sensitivity ranges from 0 to 200, with 7 as the default. At 7, the reference is 79 cm/360° at 800 DPI, 39.5 cm at 1600 DPI, and 19.8 cm at 3200 DPI. The affine model retains a small turning speed at 0. At 100, it gives 6.5 / 3.2 / 1.6 cm at 800 / 1600 / 3200 DPI, matching the reference screenshots. It agrees with a community measurement and is not an officially verified game formula. Raw mouse input is requested; browser or operating system scaling may affect physical distances.</p><p>Hold the right mouse button to aim; release it to return to hip fire. This works with or without mouse capture. While captured, left-click to shoot and use WASD to move. Only the body and head count as hits; the head counts as a headshot. Accuracy is hits/shots, and the headshot percentage is headshots/hits. The ↺ button resets the counters. Hits and headshots have distinct sounds; misses are silent. A brief white hitmarker marks a body hit; red marks a headshot. Misses show no marker.</p><p>Space starts or stops mouse capture. Scroll up to increase zoom and down to decrease it in 0.25× steps, from 1× to 8×. Start or Space captures the mouse; Stop, Space, or Esc releases it. Numeric fields allow precise adjustments. Settings are saved automatically in this browser and restored when you return; statistics are not saved.</p><p>Start trial resets the statistics and starts the timer after mouse capture succeeds. Duration ranges from 0 to 300 seconds, with 60 as the default; 0 is unlimited. Time keeps running when the mouse is released. Scoring: +100 per hit, +50 extra per headshot, −25 per miss, with a minimum score of 0. When time expires, the result is frozen. To end an unlimited trial, press Esc and click Finish trial.</p><a href="https://forums.ea.com/blog/battlefield-game-info-hub-en/dev-notes---uniform-soldier-aiming/7013669" target="_blank" rel="noopener">DICE's notes on USA ↗</a><br><a href="https://sensitivitymatch.com/mouse-sensitivity-converter/cs2-to-battlefield-6/" target="_blank" rel="noopener">Measured sensitivity model ↗</a></div>
+      </div>
+    </aside>
+    <aside id="movement-controls" class="settings-panel" aria-label="Movement settings">
+      <div class="panel-header"><div><span class="eyebrow">LIVE SETTINGS</span><h2>Movement</h2></div><button id="movement-collapse" class="icon-button" aria-expanded="true" aria-controls="movement-panel-body" aria-label="Collapse movement controls">−</button></div>
+      <div id="movement-panel-body">
+        <section class="control-section"><div class="section-title"><span>01</span><h3>Targets</h3></div>
           <div class="range-label"><label for="target-count">Count</label><span class="numeric-value"><input id="target-count-value" type="number" min="1" max="24" step="1" inputmode="numeric" aria-label="Target count: exact value"><span>/ 24</span></span></div><input id="target-count" type="range" min="1" max="24" step="1" value="9">
           <label class="switch-row" for="motion"><span>Moving targets</span><input id="motion" type="checkbox" role="switch" checked></label>
           <div class="range-label"><label for="target-speed">Speed</label><span class="numeric-value"><input id="target-speed-value" type="number" min="0" max="4" step="0.05" aria-label="Target speed: exact value"><span>×</span></span></div><input id="target-speed" type="range" min="0" max="4" step="0.05" value="1">
           <p class="micro">Separate sideways and forward/backward paths prevent collisions. 0× pauses movement.</p>
         </section>
-        <section class="control-section"><div class="section-title"><span>05</span><h3>Player movement</h3></div>
+        <section class="control-section"><div class="section-title"><span>02</span><h3>Player movement</h3></div>
           <div class="range-label"><label for="movement-speed">Speed</label><span class="numeric-value"><input id="movement-speed-value" type="number" min="0" max="12" step="0.1" aria-label="Movement speed: exact value"><span>m/s</span></span></div><input id="movement-speed" type="range" min="0" max="12" step="0.1" value="4">
           <p class="micro">W / S: forward and backward · A / D: strafe. Available while the mouse is captured.</p>
         </section>
-        <section class="control-section"><div class="section-title"><span>06</span><h3>Timed trial</h3></div>
-          <div class="range-label"><label for="session-duration">Duration</label><span class="numeric-value"><input id="session-duration-value" type="number" min="0" max="300" step="1" inputmode="numeric" aria-label="Trial duration in seconds"><span>s</span></span></div><input id="session-duration" type="range" min="0" max="300" step="1" value="60">
-          <p class="micro">60 s by default · 0 = unlimited · maximum 5 min. Start trial resets the statistics. Time keeps running if you release the mouse. To end an unlimited trial, press Esc and click Finish trial.</p>
-        </section>
-        <p class="micro storage-status" id="storage-status" role="status"></p>
-        <div class="panel-footer"><button id="reset-all">Reset settings</button><button id="help-toggle" aria-expanded="false">How it works ↗</button></div>
-        <div id="help" hidden><p>The H/V settings use a fixed 16:9 reference. Neither changes when you select a different resolution. The camera keeps the vertical FOV and expands the actual horizontal FOV on ultrawide displays without stretching the image. Optical zoom divides tan(FOV/2), not the angle in degrees.</p><p>The coefficient is measured relative to half the image height: 100% equals that distance from the center. The horizontal edge corresponds to 100 × width/height. 0% matches infinitesimal movements around the crosshair.</p><p>With USA disabled, the angular sensitivity multiplier is 1 (constant cm/360°). This is a geometric comparison, not an exact recreation of a game's legacy aiming mode. Sensitivity ranges from 0 to 200, with 7 as the default. At 7, the reference is 79 cm/360° at 800 DPI, 39.5 cm at 1600 DPI, and 19.8 cm at 3200 DPI. The affine model retains a small turning speed at 0. At 100, it gives 6.5 / 3.2 / 1.6 cm at 800 / 1600 / 3200 DPI, matching the reference screenshots. It agrees with a community measurement and is not an officially verified game formula. Raw mouse input is requested; browser or operating system scaling may affect physical distances.</p><p>Hold the right mouse button to aim; release it to return to hip fire. This works with or without mouse capture. While captured, left-click to shoot and use WASD to move. Hits anywhere on a target board or silhouette count as hits; only the head counts as a headshot. Accuracy is hits/shots, and the headshot percentage is headshots/hits. The ↺ button resets the counters. Hits and headshots have distinct sounds; misses are silent. No hit markers or shot messages appear on the crosshair.</p><p>Space starts or stops mouse capture. Scroll up to increase zoom and down to decrease it in 0.25× steps, from 1× to 8×. Start or Space captures the mouse; Stop, Space, or Esc releases it. Numeric fields allow precise adjustments. Settings are saved automatically in this browser and restored when you return; statistics are not saved.</p><p>Start trial resets the statistics and starts the timer after mouse capture succeeds. Duration ranges from 0 to 300 seconds, with 60 as the default; 0 is unlimited. Time keeps running when the mouse is released. Scoring: +100 per hit, +50 extra per headshot, −25 per miss, with a minimum score of 0. When time expires, the result is frozen. To end an unlimited trial, press Esc and click Finish trial.</p><a href="https://forums.ea.com/blog/battlefield-game-info-hub-en/dev-notes---uniform-soldier-aiming/7013669" target="_blank" rel="noopener">DICE's notes on USA ↗</a><br><a href="https://sensitivitymatch.com/mouse-sensitivity-converter/cs2-to-battlefield-6/" target="_blank" rel="noopener">Measured sensitivity model ↗</a></div>
       </div>
     </aside>
+    </div>
     </div>
   </main>
   <script type="module" src="./app.js"></script>

@@ -9,12 +9,14 @@ test('center reticle hits the nearest body, not targets behind it',()=>{
   const result=traceShot({yaw:0,pitch:0});
   assert.equal(result.hit,true);assert.equal(result.headshot,false);assert.equal(result.target,1);
 });
-test('visible head is a headshot, but the board is only a normal hit',()=>{
+test('only the head and body count as hits, with no backing board',()=>{
   const center=targetCenter(1);
   const head=traceShot(aimAt(center.map((n,i)=>n+TARGETS.headOffset[i])));
   assert.equal(head.hit,true);assert.equal(head.headshot,true);assert.equal(head.target,1);
-  const board=traceShot(aimAt([.5,2.3,-10]));
-  assert.equal(board.hit,true);assert.equal(board.headshot,false);
+  const empty=traceShot({...aimAt([.5,2.3,-10]),targetCount:2});
+  assert.equal(empty.hit,false);
+  const body=traceShot(aimAt(center.map((n,i)=>n+TARGETS.bodyOffset[i])));
+  assert.equal(body.hit,true);assert.equal(body.headshot,false);
 });
 test('foreground target blocks a head behind it',()=>{
   const center=targetCenter(7);
@@ -44,15 +46,15 @@ test('shots originate at the player position after moving',()=>{
 });
 test('all 24 paths remain separated and inside the shooting range',()=>{
   // Whole-path bounds prove separation even when neighboring paths are at opposite extremes.
-  assert.ok(TARGETS.spacing-2*TARGETS.motionAmplitude>2*TARGETS.board[0]);
-  assert.ok(TARGETS.depthSpacing-2*TARGETS.depthAmplitude>TARGETS.headOffset[2]+TARGETS.headRadius+TARGETS.board[2]);
+  assert.ok(TARGETS.spacing-2*TARGETS.motionAmplitude>2*Math.max(TARGETS.body[0],TARGETS.headRadius));
+  assert.ok(TARGETS.depthSpacing-2*TARGETS.depthAmplitude>TARGETS.headOffset[2]+TARGETS.headRadius+Math.max(TARGETS.body[2],TARGETS.headRadius));
   for(let time=0;time<=40;time+=.2){
     const centers=Array.from({length:TARGETS.maxCount},(_,i)=>targetCenter(i,time,true));
     for(let i=0;i<centers.length;i++){
-      assert.ok(centers[i][2]-TARGETS.board[2]>-54.7,'target remains in front of back wall');
-      assert.ok(Math.abs(centers[i][0])+TARGETS.board[0]<10,'target stays inside side rails');
+      assert.ok(centers[i][2]-Math.max(TARGETS.body[2],TARGETS.headRadius)>-54.7,'target remains in front of back wall');
+      assert.ok(Math.abs(centers[i][0])+Math.max(TARGETS.body[0],TARGETS.headRadius)<10,'target stays inside side rails');
       for(let j=i+1;j<centers.length;j++){
-        const separatedX=Math.abs(centers[i][0]-centers[j][0])>2*TARGETS.board[0];
+        const separatedX=Math.abs(centers[i][0]-centers[j][0])>2*Math.max(TARGETS.body[0],TARGETS.headRadius);
         const separatedZ=Math.abs(centers[i][2]-centers[j][2])>.51;
         assert.ok(separatedX||separatedZ,`targets ${i} and ${j} overlap at ${time}`);
       }

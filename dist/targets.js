@@ -2,7 +2,7 @@
 export const TARGETS = {
   count:9, maxCount:24, columns:3, spacing:5, firstZ:-10, depthSpacing:6,
   height:1.65, motionSpeed:.65, motionPhase:1.7, motionAmplitude:1.1, depthAmplitude:2,
-  board:[.64,1.02,.10], headOffset:[0,.44,.23], headRadius:.18,
+  headOffset:[0,.44,.23], headRadius:.18,
   bodyOffset:[0,-.08,.2], body:[.22,.34,.12],
 };
 export const SHOOTING_LINE = { z:1, width:.5 };
@@ -43,10 +43,8 @@ export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.cou
   const count=Math.max(1,Math.min(TARGETS.maxCount,Math.round(targetCount)));
   for(let index=0;index<count;index++){
     const center=targetCenter(index,time,motion);
-    consider(intersectBox(position,direction,center,TARGETS.board),index);
     consider(intersectSphere(position,direction,add(center,TARGETS.headOffset),TARGETS.headRadius),index,true);
     consider(intersectBox(position,direction,add(center,TARGETS.bodyOffset),TARGETS.body),index);
-    consider(intersectBox(position,direction,[center[0],.4,center[2]],[.055,.4,.055]));
   }
   // Rails can hide a target; the nearest visible surface determines the shot.
   for(let j=0;j<8;j++)for(const x of [-10,10]){

@@ -20,6 +20,14 @@ let aspect=16/9, dirty=true, lastSize='', lastTime=0;
 const shots={hits:0,misses:0,headshots:0};
 const training=new TrainingSession();
 let pendingTrainingStart=false,captureRequestActive=false;
+let hitmarkerTimer;
+function showHitmarker(result){
+  clearTimeout(hitmarkerTimer);
+  const marker=$('hitmarker');
+  marker.hidden=!result.hit;
+  marker.classList.toggle('headshot',result.headshot);
+  if(result.hit)hitmarkerTimer=setTimeout(()=>{marker.hidden=true;},180);
+}
 let lastRenderedPose=null,animationTime=0,previousFrameTime=null;
 const setText = (id, text) => { $(id).textContent=text; };
 function updateShootingStats(){
@@ -79,6 +87,7 @@ function shoot(){
   const result=traceShot(lastRenderedPose??{...state,time:performance.now()/1000});
   if(result.hit){shots.hits++;if(result.headshot)shots.headshots++;}else shots.misses++;
   updateShootingStats();
+  showHitmarker(result);
   if(result.hit)hitAudio.playHit(result.headshot);
 }
 $('reset-stats').addEventListener('click',()=>{
@@ -116,15 +125,11 @@ function update() {
     field.min=$(id).min;field.max=$(id).max;
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
   }
-  const activeVertical=state.ads?adsVertical():state.vertical;
   for(const dpi of [800,1600,3200]){
     const cm=sensitivityCm360(state.sensitivity,dpi);
     setText('distance-'+dpi,Number.isFinite(cm)?`${cm.toFixed(1)} cm`:'∞ · no rotation');
   }
-  setText('actual-fov',`${horizontalFov(activeVertical,referenceAspect).toFixed(1)}° / ${activeVertical.toFixed(1)}°`);
-  setText('sensitivity-ratio',`${multiplier().toFixed(3)}×`);
   const fraction=referenceFraction(state.coefficient,aspect);
-  setText('monitor-distance',state.usa?`${(fraction*100).toFixed(1)}% of half-width`:'Disabled');
   setText('resolution-label',`${state.width} × ${state.height} / ${(aspect).toFixed(2)}:1`);
   setText('aspect-label',`Aspect ratio ${aspect.toFixed(3)}:1 · Scaled to fit`);
   const clipped=fraction>1;
@@ -187,7 +192,15 @@ $('reset-all').addEventListener('click',()=>{
   Object.assign(state,initial,{yaw:0,pitch:0,position:[...CAMERA]});animationTime=0;movementKeys.clear();
   syncSettingsControls();layout();
 });
-$('collapse').addEventListener('click',()=>{const open=$('panel-body').hidden;$('panel-body').hidden=!open;$('collapse').setAttribute('aria-expanded',String(open));$('collapse').setAttribute('aria-label',open?'Collapse controls':'Expand controls');$('collapse').textContent=open?'−':'+';});
+function setPanelOpen(buttonId,bodyId,open,label){
+  $(bodyId).hidden=!open;
+  $(buttonId).setAttribute('aria-expanded',String(open));
+  $(buttonId).setAttribute('aria-label',`${open?'Collapse':'Expand'} ${label}`);
+  $(buttonId).textContent=open?'−':'+';
+}
+for(const [button,body,label] of [['collapse','panel-body','controls'],['movement-collapse','movement-panel-body','movement controls']]){
+  $(button).addEventListener('click',()=>setPanelOpen(button,body,$(body).hidden,label));
+}
 $('help-toggle').addEventListener('click',()=>{const open=$('help').hidden;$('help').hidden=!open;$('help-toggle').setAttribute('aria-expanded',String(open));if(open)$('help').scrollIntoView({block:'nearest',behavior:'smooth'});});
 $('fullscreen').addEventListener('click',async()=>{
   try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
@@ -255,7 +268,7 @@ document.addEventListener('keyup',e=>movementKeys.delete(e.code));
 window.addEventListener('blur',()=>{movementKeys.clear();releaseRightAim();});
 window.addEventListener('resize',layout);
 syncSettingsControls();
-if(window.innerWidth<=760){$('panel-body').hidden=true;$('collapse').setAttribute('aria-expanded','false');$('collapse').setAttribute('aria-label','Expand controls');$('collapse').textContent='+';}
+if(window.innerWidth<=760){setPanelOpen('collapse','panel-body',false,'controls');setPanelOpen('movement-collapse','movement-panel-body',false,'movement controls');}
 layout();
 function frame(now){
   checkTrainingDeadline(now);

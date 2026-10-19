@@ -14,7 +14,7 @@ Open http://localhost:8080. Run `npm test` with Node 18 or later to check the ge
 
 The workflow in `.github/workflows/pages.yml` tests and publishes `dist/` whenever `master` changes. It can also be started manually from the Actions tab.
 
-In the repository's **Settings → Pages**, select **GitHub Actions** as the publishing source. Once enabled, run **Deploy to GitHub Pages** from the Actions tab. The expected public address is https://iasdev.github.io/sensitivity-web/.
+In the repository's **Settings → Pages**, select **GitHub Actions** as the publishing source. Once enabled, run **Deploy to GitHub Pages** from the Actions tab. The expected public address is https://iasdev.github.io/sensitivity-lab/.
 
 GitHub Pages requires an eligible plan for private repositories. On GitHub Free, the repository must be public. Enabling a public website does not require making an eligible private repository public.
 
@@ -23,7 +23,7 @@ GitHub Pages requires an eligible plan for private repositories. On GitHub Free,
 - Horizontal and vertical FOV use a fixed 16:9 reference. Both settings stay unchanged when the resolution changes. The camera preserves vertical FOV and expands the actual horizontal FOV on wider displays without stretching the image. Numeric fields and sliders stay synchronized.
 - Choose a preset resolution, custom dimensions, or Fit available space. The Fullscreen button uses the browser's fullscreen mode.
 - Red represents the field of view, and green represents the USA matching distance. Outlines only removes the green fill and uses a neutral scene palette while retaining red and green borders. This preference is saved.
-- Settings, metrics, and mouse controls are translucent scene overlays. Settings start collapsed on mobile.
+- Perspective & aim and Movement are separate translucent, independently scrollable overlays on the right. Movement contains target count, target motion, target speed, and player speed. The shooting overlay on the left contains trial duration, clock, score, and statistics. Both right-side panels start collapsed on mobile. No bottom metrics banner is shown.
 - Optical zoom ranges from 1× to 8×. ADS FOV can be relative to the player's FOV or a fixed 55° vertical reference.
 - USA can be enabled or disabled, with a coefficient from 0% to 300% and presets for 0, 4:3, 16:9, and 21:9.
 - Sensitivity accepts integers from 0 to 200, with 7 as the default.
@@ -34,11 +34,11 @@ GitHub Pages requires an eligible plan for private repositories. On GitHub Free,
 
 ## Shooting and statistics
 
-Each left-click while captured fires a ray from the crosshair. Hit detection uses the camera position, orientation, target count, and animation time of the last displayed frame. Target board, body, and head geometry is shared by the shader and hit detector. Ground, posts, and rails block shots. The nearest surface determines the result, and each shot counts once.
+Each left-click while captured fires a ray from the crosshair. Hit detection uses the camera position, orientation, target count, and animation time of the last displayed frame. Body and head geometry is shared by the shader and hit detector. Targets have no backing boards or painted rings. Ground and rails block shots. The nearest surface determines the result, and each shot counts once.
 
-The entire target board and silhouette count as a hit. Only the visible head sphere counts as a headshot. The top-left overlay shows hits, misses, accuracy (hits/shots), and headshot percentage (headshots/hits). Releasing capture preserves the counters. The overlay's reset button clears them outside an active trial.
+Only the body and head count as hits. Only the visible head sphere counts as a headshot. The top-left overlay shows hits, misses, accuracy (hits/shots), and headshot percentage (headshots/hits). Releasing capture preserves the counters. The overlay's reset button clears them outside an active trial.
 
-No hit markers or shot messages appear on the crosshair. Web Audio synthesizes one short tone for a hit and two higher tones for a headshot. Misses are silent. Audio is unlocked by starting mouse capture.
+A brief white hitmarker appears for a body hit and a red one for a headshot; misses show no marker. Web Audio synthesizes one short tone for a hit and two higher tones for a headshot. Misses are silent. Audio is unlocked by starting mouse capture.
 
 ## Target movement
 
