@@ -30,12 +30,14 @@ jobs:
           node-version: 22
       - name: Run tests
         run: node --test tests/*.test.js
+      - name: Prepare versioned assets
+        run: node scripts/prepare-pages.mjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: .pages-dist
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4

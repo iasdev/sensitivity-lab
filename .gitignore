@@ -3,3 +3,5 @@ node_modules/
 *.zip
 test-results/
 .sites-local/
+
+.pages-dist/
