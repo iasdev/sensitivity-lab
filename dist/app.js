@@ -10,7 +10,7 @@ import { TrainingSession, calculateScore, formatTime } from './session.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 1600/9, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:2.5, respawnDelay:5, despawnOnHit:true, shotInterval:250, targetScale:1.5, fpsCap:120, movementSpeed:4, sessionDuration:60, outlinesOnly:true, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 1600/9, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, motionPattern:'combined', targetCount:9, targetSpeed:2.5, respawnDelay:5, despawnOnHit:true, shotInterval:250, targetScale:1.5, fpsCap:120, movementSpeed:4, sessionDuration:60, outlinesOnly:true, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
 const movementKeys=new Set();
 const hitAudio=createHitAudio();
@@ -187,6 +187,7 @@ for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],[
 }
 for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly'],['despawn-on-hit','despawnOnHit']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;if(id==='despawn-on-hit'&&!state.despawnOnHit)respawns.reset();update();});
 document.querySelectorAll('[data-coefficient]').forEach(button=>button.addEventListener('click',()=>{state.coefficient=Number(button.dataset.coefficient);$('coefficient').value=state.coefficient;update();}));
+$('motion-pattern').addEventListener('change',e=>{state.motionPattern=e.target.value;update();});
 $('resolution').addEventListener('change',e=>{
   const value=e.target.value;$('custom-resolution').hidden=value!=='custom';
   state.resolution=value;
@@ -199,7 +200,7 @@ $('apply-resolution').addEventListener('click',()=>{
 });
 function syncSettingsControls(){
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly'],['despawn-on-hit','despawnOnHit']])$(id).checked=state[key];
-  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['shot-interval','shotInterval'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
+  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['motion-pattern','motionPattern'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['shot-interval','shotInterval'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
   $('custom-resolution').hidden=state.resolution!=='custom';
 }
 document.querySelectorAll('[data-reset-settings]').forEach(button=>button.addEventListener('click',()=>{
@@ -296,7 +297,7 @@ function frame(now){
   }
   if(renderer&&(dirty||(state.motion&&state.targetSpeed>0)||document.pointerLockElement===canvas)&&limiter.ready(now,state.fpsCap)){
     // Keep the path phase when pausing or changing speed, without teleporting targets.
-    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,position:[...state.position],time:animationTime,motion:true,targetCount:state.targetCount,targetScale:state.targetScale,activeTargets:respawns.active(now)};
+    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,position:[...state.position],time:animationTime,motion:true,targetCount:state.targetCount,motionPattern:state.motionPattern,targetScale:state.targetScale,activeTargets:respawns.active(now)};
     renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,outlinesOnly:state.outlinesOnly,...lastRenderedPose});dirty=false;renderedFrames++;
   }
   if(now-fpsWindow>=1000){

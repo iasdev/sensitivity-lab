@@ -25,7 +25,7 @@ USA lets you compare how aiming feels at different zoom levels. Its green refere
 
 ## Build your practice session
 
-Use **Movement** to choose between 1 and 24 targets, pause or enable their movement, and adjust their speed from **0× to 10× in 0.5 steps**, with **2.5× by default**. Scale target bodies and heads together from **0.25× to 2×** using Size (**1.5× by default**). Targets move sideways and forward/backward on separate paths without colliding.
+Use **Movement** to choose between 1 and 24 targets, pause or enable their movement, and adjust their speed from **0× to 10× in 0.5 steps**, with **2.5× by default**. Scale target bodies and heads together from **0.25× to 2×** using Size (**1.5× by default**). Choose **Sideways + depth** (the default movement) or **Horizontal only**, which keeps targets at a fixed distance while they move sideways. Both use separate paths to prevent collisions, and your choice is saved in the browser.
 
 Adjust your own movement speed and practice while strafing. The thick red firing line marks the limit: you can move around behind it, but cannot cross into the target area.
 

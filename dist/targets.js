@@ -7,10 +7,10 @@ export const TARGETS = {
 };
 export const SHOOTING_LINE = { z:1, width:.5 };
 export const CAMERA = [0,1.65,4];
-export function targetCenter(index,time=0,motion=false){
+export function targetCenter(index,time=0,motion=false,motionPattern='combined'){
   return [
     (index%TARGETS.columns)*TARGETS.spacing-5+(motion?Math.sin(time*TARGETS.motionSpeed+index*TARGETS.motionPhase)*TARGETS.motionAmplitude:0),
-    TARGETS.height,TARGETS.firstZ-Math.floor(index/TARGETS.columns)*TARGETS.depthSpacing+(motion?Math.cos(time*TARGETS.motionSpeed+index*TARGETS.motionPhase)*TARGETS.depthAmplitude:0),
+    TARGETS.height,TARGETS.firstZ-Math.floor(index/TARGETS.columns)*TARGETS.depthSpacing+(motion&&motionPattern!=='horizontal'?Math.cos(time*TARGETS.motionSpeed+index*TARGETS.motionPhase)*TARGETS.depthAmplitude:0),
   ];
 }
 const add=(a,b)=>a.map((n,i)=>n+b[i]);
@@ -32,7 +32,7 @@ export function intersectSphere(origin,direction,center,radius){
   if(h<0)return Infinity;
   const t=-b-Math.sqrt(h);return t>0?t:Infinity;
 }
-export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA,activeTargets=null,targetScale=1}){
+export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA,activeTargets=null,targetScale=1,motionPattern='combined'}){
   const scale=Math.max(.25,Math.min(2,targetScale));
   const scaled=vector=>vector.map(value=>value*scale);
   const direction=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
@@ -45,7 +45,7 @@ export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.cou
   const count=Math.max(1,Math.min(TARGETS.maxCount,Math.round(targetCount)));
   for(let index=0;index<count;index++){
     if(activeTargets&&activeTargets[index]===false)continue;
-    const center=targetCenter(index,time,motion);
+    const center=targetCenter(index,time,motion,motionPattern);
     consider(intersectSphere(position,direction,add(center,scaled(TARGETS.headOffset)),TARGETS.headRadius*scale),index,true);
     consider(intersectBox(position,direction,add(center,scaled(TARGETS.bodyOffset)),scaled(TARGETS.body)),index);
   }

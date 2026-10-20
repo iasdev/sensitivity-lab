@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sanitizeSettings } from '../dist/settings.js';
-const defaults={vertical:70,zoom:2,coefficient:1600/9,sensitivity:7,targetCount:9,targetSpeed:2.5,respawnDelay:5,shotInterval:250,despawnOnHit:true,targetScale:1.5,fpsCap:120,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:true,resolution:'1920x1080'};
+const defaults={vertical:70,zoom:2,coefficient:1600/9,sensitivity:7,targetCount:9,targetSpeed:2.5,motionPattern:'combined',respawnDelay:5,shotInterval:250,despawnOnHit:true,targetScale:1.5,fpsCap:120,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:true,resolution:'1920x1080'};
 test('only settings are restored, excluding statistics and runtime state',()=>{
   const data=sanitizeSettings({...defaults,sensitivity:55,movementSpeed:6,shots:{hits:100},position:[1,2,3],ads:true,yaw:2},defaults);
   assert.equal(data.sensitivity,55);assert.equal(data.movementSpeed,6);
@@ -51,4 +51,10 @@ test('target speed uses half steps up to 10 with a 2.5 default',()=>{
   assert.equal(sanitizeSettings({targetSpeed:2.7},defaults).targetSpeed,2.5);
   assert.equal(sanitizeSettings({targetSpeed:9.5},defaults).targetSpeed,9.5);
   assert.equal(sanitizeSettings({targetSpeed:50},defaults).targetSpeed,10);
+});
+
+test('motion pattern defaults to combined and restores only supported modes',()=>{
+  assert.equal(sanitizeSettings({},defaults).motionPattern,'combined');
+  assert.equal(sanitizeSettings({motionPattern:'horizontal'},defaults).motionPattern,'horizontal');
+  assert.equal(sanitizeSettings({motionPattern:'invalid'},defaults).motionPattern,'combined');
 });

@@ -81,3 +81,23 @@ test('target size scales body hitboxes and head offsets/radii together',()=>{
   assert.equal(traceShot({...outerBody,targetCount:2,targetScale:1}).hit,true);
   assert.equal(traceShot({...outerBody,targetCount:2,targetScale:.25}).hit,false);
 });
+
+test('horizontal-only targets move sideways at a constant depth',()=>{
+  for(let index=0;index<TARGETS.maxCount;index++){
+    const depth=targetCenter(index,0,false)[2];
+    for(const time of [0,1,4,9]){
+      const horizontal=targetCenter(index,time,true,'horizontal');
+      const combined=targetCenter(index,time,true,'combined');
+      assert.equal(horizontal[2],depth);assert.equal(horizontal[1],TARGETS.height);
+      assert.equal(horizontal[0],combined[0]);
+    }
+  }
+  assert.notEqual(targetCenter(0,0,true,'horizontal')[0],targetCenter(0,1,true,'horizontal')[0]);
+  assert.notEqual(targetCenter(0,0,true,'combined')[2],targetCenter(0,1,true,'combined')[2]);
+});
+test('horizontal-only hit detection follows the same target path',()=>{
+  const time=5,center=targetCenter(0,time,true,'horizontal');
+  const pose=aimAt(center.map((n,i)=>n+TARGETS.headOffset[i]));
+  const result=traceShot({...pose,time,motion:true,motionPattern:'horizontal',targetCount:1});
+  assert.equal(result.target,0);assert.equal(result.headshot,true);
+});

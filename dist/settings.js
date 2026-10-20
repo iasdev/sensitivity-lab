@@ -15,6 +15,7 @@ export function sanitizeSettings(input,defaults){
     result[key]=Math.max(min,Math.min(max,normalized));
   }
   for(const key of booleans)result[key]=typeof data[key]==='boolean'?data[key]:defaults[key];
+  result.motionPattern=['combined','horizontal'].includes(data.motionPattern)?data.motionPattern:defaults.motionPattern;
   result.resolution=resolutions.includes(data.resolution)?data.resolution:defaults.resolution;
   if(!['screen','custom'].includes(result.resolution))[result.width,result.height]=result.resolution.split('x').map(Number);
   return result;
@@ -27,7 +28,7 @@ export function loadSettings(defaults){
 }
 let previousSaved=null;
 export function saveSettings(state){
-  const keys=[...Object.keys(ranges),...booleans,'resolution'];
+  const keys=[...Object.keys(ranges),...booleans,'resolution','motionPattern'];
   const payload=JSON.stringify({version:1,settings:Object.fromEntries(keys.map(key=>[key,state[key]]))});
   if(payload===previousSaved)return true;
   try{localStorage.setItem(SETTINGS_KEY,payload);previousSaved=payload;return true;}catch{return false;}
