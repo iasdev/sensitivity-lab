@@ -61,7 +61,7 @@ For useful comparisons, keep the duration, target count, and movement speeds the
 | Shoot | **Left-click** while captured |
 | Increase / decrease zoom | Scroll **up / down** over the scene |
 
-The **Perspective & aim** and **Movement** menus collapse independently. Your settings are saved in your browser so you can resume later; statistics and trial results start fresh. Use **Reset settings** to return to the defaults.
+The **Perspective & aim** and **Movement** menus collapse independently. Your settings are saved in your browser so you can resume later; statistics and trial results start fresh. Each menu includes **Reset settings**, which restores all settings to their defaults and clears the current trial and statistics.
 
 ## USA reference
 

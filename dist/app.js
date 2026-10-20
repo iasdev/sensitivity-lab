@@ -202,11 +202,11 @@ function syncSettingsControls(){
   for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['shot-interval','shotInterval'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
   $('custom-resolution').hidden=state.resolution!=='custom';
 }
-$('reset-all').addEventListener('click',()=>{
+document.querySelectorAll('[data-reset-settings]').forEach(button=>button.addEventListener('click',()=>{
   returnToPractice();
   Object.assign(state,initial,{yaw:0,pitch:0,position:[...CAMERA]});animationTime=0;movementKeys.clear();
   syncSettingsControls();layout();
-});
+}));
 function setPanelOpen(buttonId,bodyId,open,label){
   $(bodyId).hidden=!open;
   $(buttonId).setAttribute('aria-expanded',String(open));
