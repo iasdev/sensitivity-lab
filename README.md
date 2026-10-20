@@ -18,14 +18,14 @@ Set an **FPS cap from 30 to 360**, with **120 FPS by default**, and check your c
 - Try different resolutions and aspect ratios, including ultrawide, custom sizes, and fullscreen.
 - Change optical zoom from 1× to 8× and choose whether aiming FOV follows your player FOV.
 - Set mouse sensitivity from 0 to 200 and compare the displayed cm/360° at 800, 1600, and 3200 DPI.
-- Enable or disable USA, adjust its coefficient from 0% to 300%, or use the center, 4:3, 16:9, and 21:9 presets.
-- See the USA reference distance in green. Turn on **Outlines only** to keep the borders while seeing the scene without colored fills.
+- Enable or disable USA, adjust its coefficient from 0% to 300%, or use the center, 4:3, 16:9, and 21:9 presets. **16:9 is selected by default**.
+- See the USA reference distance in green. **Outlines only is enabled by default**, keeping the borders while showing the scene without colored fills.
 
 USA lets you compare how aiming feels at different zoom levels. Its green reference marks a matching distance from the center; sensitivity applies across the whole view. Try small corrections and wider flicks to find the coefficient that suits you.
 
 ## Build your practice session
 
-Use **Movement** to choose between 1 and 24 targets, pause or enable their movement, and adjust their speed. Scale target bodies and heads together from **0.25× to 2×** using Size. Targets move sideways and forward/backward on separate paths without colliding.
+Use **Movement** to choose between 1 and 24 targets, pause or enable their movement, and adjust their speed from **0× to 10× in 0.5 steps**, with **2.5× by default**. Scale target bodies and heads together from **0.25× to 2×** using Size (**1.5× by default**). Targets move sideways and forward/backward on separate paths without colliding.
 
 Adjust your own movement speed and practice while strafing. The thick red firing line marks the limit: you can move around behind it, but cannot cross into the target area.
 

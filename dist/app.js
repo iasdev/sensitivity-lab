@@ -10,7 +10,7 @@ import { TrainingSession, calculateScore, formatTime } from './session.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, respawnDelay:5, despawnOnHit:true, shotInterval:250, targetScale:1, fpsCap:120, movementSpeed:4, sessionDuration:60, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 1600/9, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:2.5, respawnDelay:5, despawnOnHit:true, shotInterval:250, targetScale:1.5, fpsCap:120, movementSpeed:4, sessionDuration:60, outlinesOnly:true, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
 const movementKeys=new Set();
 const hitAudio=createHitAudio();
@@ -173,6 +173,7 @@ for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],[
     const value=field.valueAsNumber;
     if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,referenceAspect):state[key];return;}
     if(['sensitivity','target-count','session-duration','fps-cap','shot-interval'].includes(id)&&!Number.isInteger(value)){field.value=state[key];return;}
+    if(id==='target-speed'&&!Number.isInteger(value*2)){field.value=state[key];return;}
     const min=Number(field.min),max=Number(field.max);
     if(!commit&&(value<min||value>max))return;
     const bounded=Math.max(min,Math.min(max,value));

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sanitizeSettings } from '../dist/settings.js';
-const defaults={vertical:70,zoom:2,coefficient:178,sensitivity:7,targetCount:9,targetSpeed:1,respawnDelay:5,shotInterval:250,despawnOnHit:true,targetScale:1,fpsCap:120,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:false,resolution:'1920x1080'};
+const defaults={vertical:70,zoom:2,coefficient:1600/9,sensitivity:7,targetCount:9,targetSpeed:2.5,respawnDelay:5,shotInterval:250,despawnOnHit:true,targetScale:1.5,fpsCap:120,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:true,resolution:'1920x1080'};
 test('only settings are restored, excluding statistics and runtime state',()=>{
   const data=sanitizeSettings({...defaults,sensitivity:55,movementSpeed:6,shots:{hits:100},position:[1,2,3],ads:true,yaw:2},defaults);
   assert.equal(data.sensitivity,55);assert.equal(data.movementSpeed,6);
@@ -29,7 +29,7 @@ test('respawn delay restores older settings and validates saved values',()=>{
 
 test('frame cap and target size persist and validate older preferences',()=>{
   assert.equal(sanitizeSettings({},defaults).fpsCap,120);
-  assert.equal(sanitizeSettings({},defaults).targetScale,1);
+  assert.equal(sanitizeSettings({},defaults).targetScale,1.5);
   const saved=sanitizeSettings({fpsCap:144.3,targetScale:1.5},defaults);
   assert.equal(saved.fpsCap,144);assert.equal(saved.targetScale,1.5);
   assert.equal(sanitizeSettings({fpsCap:0,targetScale:0},defaults).fpsCap,30);
@@ -44,4 +44,11 @@ test('hit disappearance and shot interval have compatible defaults and save safe
   assert.equal(sanitizeSettings({shotInterval:0},defaults).shotInterval,50);
   assert.equal(sanitizeSettings({shotInterval:99999},defaults).shotInterval,5000);
   assert.equal(sanitizeSettings({shotInterval:125.7},defaults).shotInterval,126);
+});
+
+test('target speed uses half steps up to 10 with a 2.5 default',()=>{
+  assert.equal(sanitizeSettings({},defaults).targetSpeed,2.5);
+  assert.equal(sanitizeSettings({targetSpeed:2.7},defaults).targetSpeed,2.5);
+  assert.equal(sanitizeSettings({targetSpeed:9.5},defaults).targetSpeed,9.5);
+  assert.equal(sanitizeSettings({targetSpeed:50},defaults).targetSpeed,10);
 });
