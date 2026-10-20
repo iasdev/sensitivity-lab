@@ -32,7 +32,7 @@ export function intersectSphere(origin,direction,center,radius){
   if(h<0)return Infinity;
   const t=-b-Math.sqrt(h);return t>0?t:Infinity;
 }
-export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA}){
+export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA,activeTargets=null}){
   const direction=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
   let distance=250,result={hit:false,headshot:false,target:null};
   const consider=(t,target=null,headshot=false)=>{
@@ -42,6 +42,7 @@ export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.cou
   consider(intersectBox(position,direction,[0,3,-55],[24,3,.3]));
   const count=Math.max(1,Math.min(TARGETS.maxCount,Math.round(targetCount)));
   for(let index=0;index<count;index++){
+    if(activeTargets&&activeTargets[index]===false)continue;
     const center=targetCenter(index,time,motion);
     consider(intersectSphere(position,direction,add(center,TARGETS.headOffset),TARGETS.headRadius),index,true);
     consider(intersectBox(position,direction,add(center,TARGETS.bodyOffset),TARGETS.body),index);

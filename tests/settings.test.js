@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { sanitizeSettings } from '../dist/settings.js';
-const defaults={vertical:70,zoom:2,coefficient:178,sensitivity:7,targetCount:9,targetSpeed:1,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:false,resolution:'1920x1080'};
+const defaults={vertical:70,zoom:2,coefficient:178,sensitivity:7,targetCount:9,targetSpeed:1,respawnDelay:5,movementSpeed:4,sessionDuration:60,width:1920,height:1080,usa:true,relative:true,motion:true,outlinesOnly:false,resolution:'1920x1080'};
 test('only settings are restored, excluding statistics and runtime state',()=>{
   const data=sanitizeSettings({...defaults,sensitivity:55,movementSpeed:6,shots:{hits:100},position:[1,2,3],ads:true,yaw:2},defaults);
   assert.equal(data.sensitivity,55);assert.equal(data.movementSpeed,6);
@@ -17,4 +17,12 @@ test('fixed resolutions restore matching dimensions and custom dimensions stay b
   assert.equal(wide.width,3440);assert.equal(wide.height,1440);
   const custom=sanitizeSettings({resolution:'custom',width:99999,height:-1},defaults);
   assert.equal(custom.width,7680);assert.equal(custom.height,240);
+});
+
+test('respawn delay restores older settings and validates saved values',()=>{
+  assert.equal(sanitizeSettings({},defaults).respawnDelay,5);
+  assert.equal(sanitizeSettings({respawnDelay:1.5},defaults).respawnDelay,1.5);
+  assert.equal(sanitizeSettings({respawnDelay:0},defaults).respawnDelay,.1);
+  assert.equal(sanitizeSettings({respawnDelay:Infinity},defaults).respawnDelay,5);
+  assert.equal(sanitizeSettings({respawnDelay:100},defaults).respawnDelay,30);
 });

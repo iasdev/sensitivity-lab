@@ -25,6 +25,8 @@ Use **Movement** to choose between 1 and 24 targets, pause or enable their movem
 
 Adjust your own movement speed and practice while strafing. The thick red firing line marks the limit: you can move around behind it, but cannot cross into the target area.
 
+Each hit removes its target from the range. It respawns after **5 seconds by default**; adjust **Respawn delay** in Movement from **0.1 to 30 seconds**. Respawns keep counting while target movement is paused or the mouse is released. Delay changes apply to new hits, and starting a new trial restores all targets.
+
 Targets have white bodies and red heads. Body hits show a white hitmarker; headshots show a red one. Each has a distinct hit sound, while misses stay silent.
 
 ## Measure your results

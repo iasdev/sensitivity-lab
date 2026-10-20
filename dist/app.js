@@ -1,6 +1,7 @@
 import { horizontalFov, verticalFov, zoomFov, usaMultiplier, referenceFraction, radians, sensitivityDegreesPerCount, sensitivityCm360 } from './math.js';
 import { createRenderer } from './renderer.js';
 import { CAMERA, traceShot, shotPercentages } from './targets.js';
+import { TargetRespawns } from './respawn.js';
 import { advancePosition } from './movement.js';
 import { loadSettings, saveSettings } from './settings.js';
 import { createHitAudio } from './audio.js';
@@ -8,7 +9,7 @@ import { TrainingSession, calculateScore, formatTime } from './session.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, movementSpeed:4, sessionDuration:60, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, respawnDelay:5, movementSpeed:4, sessionDuration:60, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
 const movementKeys=new Set();
 const hitAudio=createHitAudio();
@@ -19,6 +20,7 @@ if (!renderer) { $('webgl-error').hidden=false; $('capture').disabled=true; }
 let aspect=16/9, dirty=true, lastSize='', lastTime=0;
 const shots={hits:0,misses:0,headshots:0};
 const training=new TrainingSession();
+const respawns=new TargetRespawns();
 let pendingTrainingStart=false,captureRequestActive=false;
 let hitmarkerTimer;
 function showHitmarker(result){
@@ -65,11 +67,12 @@ function finishTraining(){
 }
 function beginTraining(){
   pendingTrainingStart=false;
+  respawns.reset();dirty=true;
   Object.assign(shots,{hits:0,misses:0,headshots:0});
   training.start(state.sessionDuration,performance.now());updateShootingStats();
 }
 function returnToPractice(){
-  pendingTrainingStart=false;training.reset();
+  pendingTrainingStart=false;training.reset();respawns.reset();dirty=true;
   Object.assign(shots,{hits:0,misses:0,headshots:0});updateShootingStats();
 }
 $('session-start').addEventListener('click',async()=>{
@@ -84,7 +87,12 @@ function shoot(){
   if(document.pointerLockElement!==canvas||!renderer)return;
   if(checkTrainingDeadline())return;
   // Match the pose and moving targets in the frame the player actually sees.
-  const result=traceShot(lastRenderedPose??{...state,time:performance.now()/1000});
+  const now=performance.now();
+  const pose=lastRenderedPose??{...state,time:animationTime};
+  // A just-eliminated target cannot be hit twice before the next rendered frame.
+  const activeTargets=respawns.active(now).map((active,index)=>active&&(pose.activeTargets?.[index]??true));
+  const result=traceShot({...pose,activeTargets});
+  if(result.hit){respawns.eliminate(result.target,state.respawnDelay,now);dirty=true;}
   if(result.hit){shots.hits++;if(result.headshot)shots.headshots++;}else shots.misses++;
   updateShootingStats();
   showHitmarker(result);
@@ -120,7 +128,7 @@ function update() {
   $('hfov').min=30;$('hfov').max=160;
   $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
-  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'movement-speed':state.movementSpeed,'session-duration':state.sessionDuration})){
+  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'respawn-delay':state.respawnDelay,'movement-speed':state.movementSpeed,'session-duration':state.sessionDuration})){
     const field=$(id+'-value');
     field.min=$(id).min;field.max=$(id).max;
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
@@ -151,9 +159,9 @@ function update() {
   renderTraining();
   dirty=true;
 }
-for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
+for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
 $('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),referenceAspect);update();});
-for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]){
+for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]){
   const field=$(id+'-value');
   const apply=(commit)=>{
     const value=field.valueAsNumber;
@@ -184,7 +192,7 @@ $('apply-resolution').addEventListener('click',()=>{
 });
 function syncSettingsControls(){
   for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly']])$(id).checked=state[key];
-  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
+  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
   $('custom-resolution').hidden=state.resolution!=='custom';
 }
 $('reset-all').addEventListener('click',()=>{
@@ -272,6 +280,7 @@ if(window.innerWidth<=760){setPanelOpen('collapse','panel-body',false,'controls'
 layout();
 function frame(now){
   checkTrainingDeadline(now);
+  if(respawns.refresh(now))dirty=true;
   const elapsed=previousFrameTime===null?0:Math.min((now-previousFrameTime)/1000,.1);previousFrameTime=now;
   if(state.motion)animationTime+=elapsed*state.targetSpeed;
   if(document.pointerLockElement===canvas&&movementKeys.size){
@@ -280,11 +289,11 @@ function frame(now){
   }
   if(renderer&&(dirty||(state.motion&&state.targetSpeed>0))&&now-lastTime>=30){
     // Keep the path phase when pausing or changing speed, without teleporting targets.
-    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,position:[...state.position],time:animationTime,motion:true,targetCount:state.targetCount};
+    lastRenderedPose={yaw:state.yaw,pitch:state.pitch,position:[...state.position],time:animationTime,motion:true,targetCount:state.targetCount,activeTargets:respawns.active(now)};
     renderer.render({aspect,vertical:state.ads?adsVertical():state.vertical,outlinesOnly:state.outlinesOnly,...lastRenderedPose});dirty=false;lastTime=now;
   }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 // Read-only diagnostic snapshot for integration checks and reproducible experiments.
-window.sensitivityLab={snapshot:()=>({...state,aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),shots:{...shots,...shotPercentages(shots)},training:{...training.snapshot(performance.now()),score:calculateScore(shots)},renderedPose:lastRenderedPose?{...lastRenderedPose}:null,webgl:Boolean(renderer)})};
+window.sensitivityLab={snapshot:()=>({...state,activeTargets:respawns.active(performance.now()),aspect,referenceAspect,actualHorizontal:horizontalFov(state.ads?adsVertical():state.vertical,aspect),adsVertical:adsVertical(),multiplier:multiplier(),referenceFraction:referenceFraction(state.coefficient,aspect),shots:{...shots,...shotPercentages(shots)},training:{...training.snapshot(performance.now()),score:calculateScore(shots)},renderedPose:lastRenderedPose?{...lastRenderedPose}:null,webgl:Boolean(renderer)})};
