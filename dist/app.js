@@ -10,7 +10,7 @@ import { TrainingSession, calculateScore, formatTime } from './session.js';
 
 const $ = id => document.getElementById(id);
 const referenceAspect=16/9;
-const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, respawnDelay:5, targetScale:1, fpsCap:120, movementSpeed:4, sessionDuration:60, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
+const initial = { vertical: verticalFov(107, 1920 / 1080), zoom: 2, coefficient: 178, sensitivity: 7, usa: true, relative: true, ads: false, motion: true, targetCount:9, targetSpeed:1, respawnDelay:5, despawnOnHit:true, shotInterval:250, targetScale:1, fpsCap:120, movementSpeed:4, sessionDuration:60, outlinesOnly:false, resolution: '1920x1080', width:1920, height:1080 };
 const state = { ...initial, ...loadSettings(initial), yaw:0, pitch:0, position:[...CAMERA] };
 const movementKeys=new Set();
 const hitAudio=createHitAudio();
@@ -91,12 +91,12 @@ function shoot(){
   if(checkTrainingDeadline())return;
   // Match the pose and moving targets in the frame the player actually sees.
   const now=performance.now();
-  if(!pistol.fire(now))return;
+  if(!pistol.fire(now,state.shotInterval))return;
   const pose=lastRenderedPose??{...state,time:animationTime};
   // A just-eliminated target cannot be hit twice before the next rendered frame.
   const activeTargets=respawns.active(now).map((active,index)=>active&&(pose.activeTargets?.[index]??true));
   const result=traceShot({...pose,activeTargets});
-  if(result.hit){respawns.eliminate(result.target,state.respawnDelay,now);dirty=true;}
+  if(result.hit&&state.despawnOnHit){respawns.eliminate(result.target,state.respawnDelay,now);dirty=true;}
   if(result.hit){shots.hits++;if(result.headshot)shots.headshots++;}else shots.misses++;
   updateShootingStats();
   showHitmarker(result);
@@ -132,7 +132,7 @@ function update() {
   $('hfov').min=30;$('hfov').max=160;
   $('vfov').min=verticalFov(30,referenceAspect);$('vfov').max=verticalFov(160,referenceAspect);
   $('hfov').value=hfov;$('vfov').value=state.vertical;
-  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'respawn-delay':state.respawnDelay,'target-scale':state.targetScale,'fps-cap':state.fpsCap,'movement-speed':state.movementSpeed,'session-duration':state.sessionDuration})){
+  for(const [id,value] of Object.entries({hfov,vfov:state.vertical,zoom:state.zoom,coefficient:state.coefficient,sensitivity:state.sensitivity,'target-count':state.targetCount,'target-speed':state.targetSpeed,'respawn-delay':state.respawnDelay,'shot-interval':state.shotInterval,'target-scale':state.targetScale,'fps-cap':state.fpsCap,'movement-speed':state.movementSpeed,'session-duration':state.sessionDuration})){
     const field=$(id+'-value');
     field.min=$(id).min;field.max=$(id).max;
     if(document.activeElement!==field)field.value=Number(value.toFixed(6));
@@ -151,6 +151,8 @@ function update() {
   $('reference-points').style.width=`${fraction*100}%`;
   $('usa-area').classList.toggle('zero',state.coefficient===0);
   setText('area-label',state.coefficient===0?'USA · CENTER':clipped?'USA · REFERENCE OUTSIDE VIEW':`USA · ${state.coefficient.toFixed(1).replace('.0','')}%`);
+  $('respawn-delay').disabled=!state.despawnOnHit;
+  $('respawn-delay-value').disabled=!state.despawnOnHit;
   $('coefficient').disabled=!state.usa;
   $('coefficient-value').disabled=!state.usa;
   document.querySelectorAll('[data-coefficient]').forEach(button=>{
@@ -163,14 +165,14 @@ function update() {
   renderTraining();
   dirty=true;
 }
-for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
+for(const [id,key] of [['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['shot-interval','shotInterval'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]) $(id).addEventListener('input',e=>{state[key]=Number(e.target.value);update();});
 $('hfov').addEventListener('input',e=>{state.vertical=verticalFov(Number(e.target.value),referenceAspect);update();});
-for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]){
+for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['shot-interval','shotInterval'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']]){
   const field=$(id+'-value');
   const apply=(commit)=>{
     const value=field.valueAsNumber;
     if(!Number.isFinite(value)){if(commit)field.value=id==='hfov'?horizontalFov(state.vertical,referenceAspect):state[key];return;}
-    if(['sensitivity','target-count','session-duration','fps-cap'].includes(id)&&!Number.isInteger(value)){field.value=state[key];return;}
+    if(['sensitivity','target-count','session-duration','fps-cap','shot-interval'].includes(id)&&!Number.isInteger(value)){field.value=state[key];return;}
     const min=Number(field.min),max=Number(field.max);
     if(!commit&&(value<min||value>max))return;
     const bounded=Math.max(min,Math.min(max,value));
@@ -182,7 +184,7 @@ for(const [id,key] of [['hfov','vertical'],['vfov','vertical'],['zoom','zoom'],[
   field.addEventListener('change',()=>apply(true));
   field.addEventListener('blur',update);
 }
-for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;update();});
+for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly'],['despawn-on-hit','despawnOnHit']]) $(id).addEventListener('change',e=>{state[key]=e.target.checked;if(id==='despawn-on-hit'&&!state.despawnOnHit)respawns.reset();update();});
 document.querySelectorAll('[data-coefficient]').forEach(button=>button.addEventListener('click',()=>{state.coefficient=Number(button.dataset.coefficient);$('coefficient').value=state.coefficient;update();}));
 $('resolution').addEventListener('change',e=>{
   const value=e.target.value;$('custom-resolution').hidden=value!=='custom';
@@ -195,8 +197,8 @@ $('apply-resolution').addEventListener('click',()=>{
   state.width=Number($('width').value);state.height=Number($('height').value);state.resolution='custom';layout();
 });
 function syncSettingsControls(){
-  for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly']])$(id).checked=state[key];
-  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
+  for(const [id,key] of [['usa','usa'],['ads-fov','relative'],['motion','motion'],['outlines-only','outlinesOnly'],['despawn-on-hit','despawnOnHit']])$(id).checked=state[key];
+  for(const [id,key] of [['zoom','zoom'],['coefficient','coefficient'],['sensitivity','sensitivity'],['resolution','resolution'],['width','width'],['height','height'],['target-count','targetCount'],['target-speed','targetSpeed'],['respawn-delay','respawnDelay'],['shot-interval','shotInterval'],['target-scale','targetScale'],['fps-cap','fpsCap'],['movement-speed','movementSpeed'],['session-duration','sessionDuration']])$(id).value=state[key];
   $('custom-resolution').hidden=state.resolution!=='custom';
 }
 $('reset-all').addEventListener('click',()=>{

@@ -29,9 +29,9 @@ Use **Movement** to choose between 1 and 24 targets, pause or enable their movem
 
 Adjust your own movement speed and practice while strafing. The thick red firing line marks the limit: you can move around behind it, but cannot cross into the target area.
 
-Each hit removes its target from the range. It respawns after **5 seconds by default**; adjust **Respawn delay** in Movement from **0.1 to 30 seconds**. Respawns keep counting while target movement is paused or the mouse is released. Delay changes apply to new hits, and starting a new trial restores all targets.
+By default, each hit removes its target from the range. Turn off **Disappear on hit** in Movement to keep targets visible and hittable; any hidden targets return immediately. It respawns after **5 seconds by default**; adjust **Respawn delay** in Movement from **0.1 to 30 seconds**. Respawns keep counting while target movement is paused or the mouse is released. Delay changes apply to new hits, and starting a new trial restores all targets.
 
-The pistol fires once per click with a **250 ms cooldown** (up to four shots per second). Faster clicks are ignored and holding the button does not fire automatically.
+Shots fire once per click with a **250 ms minimum interval by default** (up to four shots per second). Adjust **Minimum shot interval** in Perspective & aim from **50 to 5000 ms** to simulate faster pistols or slower sniper rifles. Faster clicks are ignored and holding the button does not fire automatically.
 
 Targets have white bodies and red heads. Body hits show a white hitmarker; headshots show a red one. Each has a distinct hit sound, while misses stay silent.
 

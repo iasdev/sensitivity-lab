@@ -11,10 +11,10 @@ export class FrameLimiter {
 }
 export class PistolCadence {
   constructor(){this.reset();}
-  reset(){this.nextShot=-Infinity;}
-  fire(now){
-    if(now<this.nextShot)return false;
-    this.nextShot=now+250;
+  reset(){this.lastShot=-Infinity;}
+  fire(now,intervalMs=250){
+    if(now-this.lastShot<intervalMs)return false;
+    this.lastShot=now;
     return true;
   }
 }

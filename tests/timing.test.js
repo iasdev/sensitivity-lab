@@ -23,3 +23,15 @@ test('pistol ignores fast clicks without queuing or extending the cooldown',()=>
   assert.equal(pistol.fire(250),true);assert.equal(pistol.fire(499),false);
   assert.equal(pistol.fire(500),true);pistol.reset();assert.equal(pistol.fire(501),true);
 });
+
+test('shot interval supports fast and slow weapons and live changes from the last shot',()=>{
+  const cadence=new PistolCadence();
+  assert.equal(cadence.fire(0,1000),true);
+  assert.equal(cadence.fire(999,1000),false);
+  assert.equal(cadence.fire(1000,1000),true);
+  assert.equal(cadence.fire(1049,50),false);
+  assert.equal(cadence.fire(1050,50),true);
+  assert.equal(cadence.fire(1300,250),true);
+  assert.equal(cadence.fire(6299,5000),false);
+  assert.equal(cadence.fire(6300,5000),true);
+});
