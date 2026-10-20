@@ -67,3 +67,17 @@ test('statistics use all shots for accuracy and hits for headshot percentage',()
   const stats=shotPercentages({hits:2,misses:1,headshots:1});
   assert.ok(Math.abs(stats.accuracy-200/3)<1e-9);assert.equal(stats.headshotRate,50);
 });
+
+test('target size scales body hitboxes and head offsets/radii together',()=>{
+  const center=targetCenter(1);
+  const largeBody=aimAt([.35,1.49,-9.6]);
+  assert.equal(traceShot({...largeBody,targetCount:2,targetScale:1}).hit,false);
+  assert.equal(traceShot({...largeBody,targetCount:2,targetScale:2}).hit,true);
+  for(const scale of [.25,1,2]){
+    const head=center.map((value,index)=>value+TARGETS.headOffset[index]*scale);
+    assert.equal(traceShot({...aimAt(head),targetCount:2,targetScale:scale}).headshot,true);
+  }
+  const outerBody=aimAt([.15,1.57,-9.8]);
+  assert.equal(traceShot({...outerBody,targetCount:2,targetScale:1}).hit,true);
+  assert.equal(traceShot({...outerBody,targetCount:2,targetScale:.25}).hit,false);
+});

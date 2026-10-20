@@ -6,7 +6,7 @@ varying vec2 uv;
 void main(){uv=aPosition;gl_Position=vec4(aPosition,0.,1.);}`;
 const fragment = `precision highp float;
 varying vec2 uv;
-uniform float uAspect,uTanFov,uYaw,uPitch,uTime,uMotion,uTargetCount,uColorFill;
+uniform float uAspect,uTanFov,uYaw,uPitch,uTime,uMotion,uTargetCount,uColorFill,uTargetScale;
 uniform vec3 uCamera;
 uniform vec4 uTargetActive[${Math.ceil(TARGETS.maxCount/4)}];
 float sphere(vec3 ro,vec3 rd,vec3 p,float r){vec3 oc=ro-p;float b=dot(oc,rd);float h=b*b-dot(oc,oc)+r*r;if(h<0.)return 1000.;float t=-b-sqrt(h);return t>0.?t:1000.;}
@@ -29,8 +29,8 @@ void main(){
   x+=sin(uTime*${scalar(TARGETS.motionSpeed)}+fi*${scalar(TARGETS.motionPhase)})*${scalar(TARGETS.motionAmplitude)}*uMotion;
   z+=cos(uTime*${scalar(TARGETS.motionSpeed)}+fi*${scalar(TARGETS.motionPhase)})*${scalar(TARGETS.depthAmplitude)}*uMotion;
   vec3 center=vec3(x,${scalar(TARGETS.height)},z);
-  float head=sphere(ro,rd,center+${vector(TARGETS.headOffset)},${scalar(TARGETS.headRadius)});
-  float body=box(ro,rd,center+${vector(TARGETS.bodyOffset)},${vector(TARGETS.body)});
+  float head=sphere(ro,rd,center+${vector(TARGETS.headOffset)}*uTargetScale,${scalar(TARGETS.headRadius)}*uTargetScale);
+  float body=box(ro,rd,center+${vector(TARGETS.bodyOffset)}*uTargetScale,${vector(TARGETS.body)}*uTargetScale);
   float target=min(head,body);if(target<best){best=target;color=head<body?vec3(1.,.025,.025):vec3(1.);}
 
  }
@@ -59,18 +59,18 @@ export function createRenderer(canvas) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
   const attr = gl.getAttribLocation(program, 'aPosition');
   gl.enableVertexAttribArray(attr); gl.vertexAttribPointer(attr, 2, gl.FLOAT, false, 0, 0);
-  const uniforms = Object.fromEntries(['uAspect','uTanFov','uYaw','uPitch','uTime','uMotion','uTargetCount','uColorFill'].map(name => [name, gl.getUniformLocation(program,name)]));
+  const uniforms = Object.fromEntries(['uAspect','uTanFov','uYaw','uPitch','uTime','uMotion','uTargetCount','uColorFill','uTargetScale'].map(name => [name, gl.getUniformLocation(program,name)]));
   const activeUniform=gl.getUniformLocation(program,'uTargetActive[0]');
   const cameraUniform=gl.getUniformLocation(program,'uCamera');
   let lost = false;
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); lost=true; document.getElementById('webgl-error').hidden=false; });
   canvas.addEventListener('webglcontextrestored', () => location.reload());
-  return { render({ aspect, vertical, yaw, pitch, time, motion, targetCount=TARGETS.count, position=CAMERA, outlinesOnly=false, activeTargets=Array(TARGETS.maxCount).fill(true) }) {
+  return { render({ aspect, vertical, yaw, pitch, time, motion, targetCount=TARGETS.count, position=CAMERA, outlinesOnly=false, targetScale=1, activeTargets=Array(TARGETS.maxCount).fill(true) }) {
     if (lost) return;
     gl.viewport(0,0,canvas.width,canvas.height);
     gl.uniform3fv(cameraUniform,position);
     gl.uniform4fv(activeUniform,new Float32Array(activeTargets.map(active=>active?1:0)));
-    for (const [name,value] of Object.entries({uAspect:aspect,uTanFov:Math.tan(vertical*Math.PI/360),uYaw:yaw,uPitch:pitch,uTime:time,uMotion:motion?1:0,uTargetCount:targetCount,uColorFill:outlinesOnly?0:1})) gl.uniform1f(uniforms[name],value);
+    for (const [name,value] of Object.entries({uAspect:aspect,uTanFov:Math.tan(vertical*Math.PI/360),uYaw:yaw,uPitch:pitch,uTime:time,uMotion:motion?1:0,uTargetCount:targetCount,uColorFill:outlinesOnly?0:1,uTargetScale:Math.max(.25,Math.min(2,targetScale))})) gl.uniform1f(uniforms[name],value);
     gl.drawArrays(gl.TRIANGLES,0,6);
   }};
 }

@@ -48,3 +48,11 @@
 @media(max-width:1050px){#settings-panels{right:14px;width:280px}.view-toolbar{bottom:84px;flex-direction:row;align-items:center;flex-wrap:wrap}}
 @media(max-width:760px){#settings-panels{top:64px;right:10px;bottom:110px;width:min(250px,calc(100vw - 150px));gap:8px}.view-toolbar{bottom:68px}#shooting-stats{max-height:calc(100dvh - 180px)}.trial-settings .range-label{flex-wrap:wrap;gap:5px}.trial-settings .micro{font-size:8px}.trial-settings .numeric-value input{width:48px}}
 @media(max-height:540px) and (min-width:761px){#settings-panels{top:55px;bottom:10px}.view-toolbar{bottom:40px}#shooting-stats{max-height:calc(100dvh - 110px)}}
+
+#left-panels{position:absolute;top:74px;left:24px;bottom:140px;width:260px;display:flex;flex-direction:column;gap:12px;z-index:6;pointer-events:none}
+#general-controls{flex:0 0 auto;border:1px solid #ffffff30;border-radius:10px;background:#101b1559;backdrop-filter:blur(14px);overflow:auto;pointer-events:auto;max-height:45%;scrollbar-width:thin}
+#left-panels #shooting-stats{position:relative;inset:auto;width:100%;min-height:0;max-height:none;overflow:auto;pointer-events:auto;flex:0 1 auto}
+.fps-readout{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+#actual-fps{color:var(--accent);font:500 14px 'Space Grotesk',monospace}
+@media(max-width:760px){#left-panels{top:64px;left:10px;width:124px;bottom:130px;gap:8px}#general-controls .panel-header{padding:12px 10px}#general-panel-body{padding:10px}#general-controls .range-label{flex-wrap:wrap;gap:5px}#general-controls .numeric-value input{width:50px}.fps-readout{flex-direction:column;align-items:flex-start;font-size:8px}#general-controls .micro{font-size:8px}}
+@media(max-height:540px) and (min-width:761px){#left-panels{top:55px;bottom:80px;width:240px}#general-controls .panel-header{padding:10px 12px}#general-panel-body{padding:10px 12px}}

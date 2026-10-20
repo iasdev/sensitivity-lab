@@ -32,7 +32,9 @@ export function intersectSphere(origin,direction,center,radius){
   if(h<0)return Infinity;
   const t=-b-Math.sqrt(h);return t>0?t:Infinity;
 }
-export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA,activeTargets=null}){
+export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.count,position=CAMERA,activeTargets=null,targetScale=1}){
+  const scale=Math.max(.25,Math.min(2,targetScale));
+  const scaled=vector=>vector.map(value=>value*scale);
   const direction=[Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
   let distance=250,result={hit:false,headshot:false,target:null};
   const consider=(t,target=null,headshot=false)=>{
@@ -44,8 +46,8 @@ export function traceShot({yaw,pitch,time=0,motion=false,targetCount=TARGETS.cou
   for(let index=0;index<count;index++){
     if(activeTargets&&activeTargets[index]===false)continue;
     const center=targetCenter(index,time,motion);
-    consider(intersectSphere(position,direction,add(center,TARGETS.headOffset),TARGETS.headRadius),index,true);
-    consider(intersectBox(position,direction,add(center,TARGETS.bodyOffset),TARGETS.body),index);
+    consider(intersectSphere(position,direction,add(center,scaled(TARGETS.headOffset)),TARGETS.headRadius*scale),index,true);
+    consider(intersectBox(position,direction,add(center,scaled(TARGETS.bodyOffset)),scaled(TARGETS.body)),index);
   }
   // Rails can hide a target; the nearest visible surface determines the shot.
   for(let j=0;j<8;j++)for(const x of [-10,10]){
